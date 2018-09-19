@@ -16,18 +16,8 @@ class RepositorySetRepositories extends Component {
     }
   }
 
-  render() {
-    const { data, type } = this.props;
-
-    if (data.error) {
-      return (
-        <Alert type="danger">
-          <span>{data.error.displayMessage}</span>
-        </Alert>
-      );
-    }
-
-    const availableRepos = [...data.repositories.filter(({ enabled }) => !enabled)]
+  sortedRepos = (repos) => {
+    return [...repos.filter(({ enabled }) => !enabled)]
       .sort((repo1, repo2) => {
         const repo1YStream = yStream(repo1.releasever || '');
         const repo2YStream = yStream(repo2.releasever || '');
@@ -57,8 +47,21 @@ class RepositorySetRepositories extends Component {
             } return (repo1Minor > repo2Minor) ? -1 : 1;
           } return (repo1Major > repo2Major) ? -1 : 1;
         } return (repo1.arch > repo2.arch) ? -1 : 1;
-      })
-      .map(repo => (
+      });
+  }
+
+  render() {
+    const { data, type } = this.props;
+
+    if (data.error) {
+      return (
+        <Alert type="danger">
+          <span>{data.error.displayMessage}</span>
+        </Alert>
+      );
+    }
+
+    const availableRepos = this.sortedRepos(data.repositories).map(repo => (
         <RepositorySetRepository key={repo.arch + repo.releasever} type={type} {...repo} />
       ));
 

@@ -71,9 +71,9 @@ module Actions
 
         def run
           view = ::Katello::ContentView.find(input[:content_view_id])
-          version = ::Katello::ContentViewVersion.find(input[:content_view_version_id])
+          #version = ::Katello::ContentViewVersion.find(input[:content_view_version_id])
           output[:content_view_id] = view.id
-          output[:content_view_version_id] = version.id
+          output[:content_view_version_id] = input[:content_view_version_id]
           unless view.composite?
             output[:composite_version_auto_published] = []
             output[:composite_view_publish_failed] = []
@@ -83,15 +83,11 @@ module Actions
             # this component belongs to
             view.component_composites.each do |cv_component|
               if cv_component.latest? && cv_component.composite_content_view.auto_publish?
-                description = _("Auto Publish - Triggered by '%{component}'") %
-                                { :component => version.name }
                 begin
-                  task = ForemanTasks.async_task(::Actions::Katello::ContentView::Publish,
-                                          cv_component.composite_content_view,
-                                          description,
-                                          :triggered_by => version)
+                  task = ForemanTasks.async_task(::Actions::Katello::ContentView::AutoPublish,
+                                          cv_component.composite_content_view, input[:content_view_version_id])
                   output[:composite_auto_publish_task_id] << task.id
-                  output[:composite_version_auto_published] << task.input[:content_view_version_id]
+                  #output[:composite_version_auto_published] << task.input[:content_view_version_id]
                 rescue StandardError
                   ::Katello::UINotifications::ContentView::AutoPublishFailure.deliver!(
                                               cv_component.composite_content_view)

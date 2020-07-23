@@ -55,12 +55,16 @@
       </button>
 
     </form>
+    <div class="help-block" style="text-align:left;">
+      <p translate>
+        Changing the Content View will not affect the Content Hosts until their next checkin.
+        To update the Content Hosts immediately run the following command:
+      </p>
+      <code># subscription-manager refresh</code>
+    </div>
   </div>
 
   <div data-block="modal-footer">
-    <p style="text-align:left;font-size:12px;">Changing the Content View will not affect the Content Hosts until their next check-in.</p>
-    <p style="text-align:left;font-size:12px;">To update the Content Hosts immediately run the following commands:</p>
-    <p style="text-align:left;font-size:12px;"><code># subscription-manager refresh</code></p>
     <button type="button" class="btn btn-primary" ng-click="ok()" translate>
       Done
     </button>

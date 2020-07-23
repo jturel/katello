@@ -283,9 +283,8 @@
             edit-trigger="editContentView">
             </div>
             <div bst-alert="info" ng-show="showCVAlert">
-              <p>Please run the following commands on the client,</p>
-              <p>so the new Content View can take effect.</p>
-              <p><code># yum clean all</code></p>
+              <p>Changing the Content View will not affect the Content Host until its next check-in.</p>
+              <p>To update the Content Host immediately run the following commands:</p>
               <p><code># subscription-manager refresh</code></p>
             </div>
         </dd>

@@ -15,16 +15,17 @@ module Katello
     def test_resolve_group_by_helper_one_invocation
       trace_one = Katello::HostTracer.create(host_id: @host1.id, application: 'rsyslog', app_type: 'daemon', helper: 'systemctl restart rsyslog')
       trace_two = Katello::HostTracer.create(host_id: @host2.id, application: 'rsyslog', app_type: 'daemon', helper: 'systemctl restart rsyslog')
-      traces = [trace_one.id, trace_two.id]
       helper = {:helper => trace_two.helper}
-      trace_ids = Katello::HostTracer.resolvable.where(id: traces)
-      job_invocation = {"description" => "Restart Services", "id" => 1, "job_category" => "Katello"}
+
+      traces = Katello::HostTracer.where(id: [trace_one.id, trace_two.id])
+
+      job_invocation = mock
 
       JobInvocationComposer.expects(:for_feature).with(:katello_service_restart, [@host1.id, @host2.id], helper).returns(mock(trigger: true, job_invocation: job_invocation))
 
-      result = Katello::HostTraceManager.resolve_traces(Katello::HostTracer.where(id: trace_ids))
+      result = Katello::HostTraceManager.resolve_traces(traces)
 
-      assert_equal 1, result.size
+      assert_equal [job_invocation], result
     end
 
     def test_resolve_reboot_service

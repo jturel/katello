@@ -31,6 +31,8 @@ module Katello
         composer.trigger
         job_invocations << composer.job_invocation
       end
+
+      job_invocations
     end
   end
 end

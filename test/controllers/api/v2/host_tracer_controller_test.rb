@@ -24,12 +24,9 @@ module Katello
 
     def test_resolve
       trace_one = Katello::HostTracer.create(host_id: @host1.id, application: 'rsyslog', app_type: 'daemon', helper: 'systemctl restart rsyslog')
-      task = ForemanTasks::Task.new.to_json
-      result = JSON.parse(task)
-      job_invocation = mock(task_id: '12345')
+      task = FactoryBot.create(:dynflow_task)
+      job_invocation = mock(task_id: task.id)
       composer = mock(job_invocation: job_invocation)
-
-      ForemanTasks::Task.stubs(:find).returns(ForemanTasks::Task.new)
 
       Katello::HostTraceManager.expects(:resolve_traces).with([trace_one]).returns([composer])
 
@@ -39,7 +36,7 @@ module Katello
 
       body = JSON.parse(response.body)
 
-      assert_equal result['task'], body
+      assert_equal task.id, body['id']
     end
   end
 end

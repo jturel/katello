@@ -20,10 +20,9 @@ module Katello
     def resolve
       traces = Katello::HostTracer.resolvable.where(id: params[:trace_ids])
       result = Katello::HostTraceManager.resolve_traces(traces)
-
       task = ForemanTasks::Task.find(result.first.job_invocation.task_id)
 
-      render json: task
+      respond_for_async(resource: task)
     end
 
     protected

@@ -1,5 +1,7 @@
 module Katello
   class ProductContent < Katello::Model
+    include Katello::Authorization::ProductContent
+
     belongs_to :product, :class_name => 'Katello::Product', :foreign_key => 'product_id', :inverse_of => :product_contents
     belongs_to :content, :class_name => 'Katello::Content', :foreign_key => 'content_id', :inverse_of => :product_contents
 

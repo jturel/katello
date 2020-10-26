@@ -122,17 +122,19 @@ module Katello
     end
 
     def find_product_content
+      byebug
       if @product.present?
         @product_content = @product.product_content_by_id(params[:id])
       else
-        content = Katello::Content.find_by(:cp_content_id => params[:id], :organization_id => @organization[:id])
-        @product_content = Katello::ProductContent.find_by(:content_id => content.id)
+        content = Katello::Content.readable.find_by(:cp_content_id => params[:id], :organization_id => @organization[:id])
+        @product_content = Katello::ProductContent.readable.find_by(:content_id => content.id)
       end
-      fail HttpErrors::NotFound, _("Couldn't find repository set with id '%s'.") % params[:id] if @product_content.nil?
+      throw_resource_not_found(name: 'repository set', id: params[:id]) if @product_content.nil?
       @product = @product_content.product if @product.nil?
     end
 
     def find_product_or_organization
+      byebug
       if params[:product_id]
         find_product
       else
@@ -141,8 +143,9 @@ module Katello
     end
 
     def find_product
+      byebug
       @product = Product.find_by(:id => params[:product_id])
-      fail HttpErrors::NotFound, _("Couldn't find product with id '%s'") % params[:product_id] if @product.nil?
+      throw_resource_not_found(name: 'product', id: params[:product_id]) if @product.nil?
       @organization = @product.organization
     end
 

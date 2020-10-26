@@ -339,6 +339,12 @@ module Katello
                          },
                          :resource_type => 'Katello::Product',
                          :finder_scope => :exportable
+      @plugin.permission :view_subscriptions,
+        {
+          'katello/api/v2/subscriptions' => [:refresh_manifest, :import_manifest],
+          :resource_typ => 'Katello::Product',
+          :finder_scope => :readable
+        }
     end
 
     def subscription_permissions # rubocop:disable Metrics/MethodLength
@@ -347,7 +353,8 @@ module Katello
                            'katello/api/v2/subscriptions' => [:index, :show, :available, :manifest_history, :auto_complete_search],
                            'katello/api/v2/repository_sets' => [:index, :show, :available_repositories, :auto_complete_search]
                          },
-                         :resource_type => 'Katello::Subscription'
+                         :resource_type => 'Katello::Subscription',
+                         :finder_scope => :readable
       @plugin.permission :attach_subscriptions,
                          {
                            'katello/api/v2/subscriptions' => [:create]
@@ -363,7 +370,8 @@ module Katello
                            'katello/api/v2/subscriptions' => [:upload, :refresh_manifest],
                            'katello/api/v2/repository_sets' => [:enable, :disable]
                          },
-                         :resource_type => 'Katello::Subscription'
+                         :resource_type => 'Katello::Subscription',
+                         :finder_scope => :editable
       @plugin.permission :delete_manifest,
                          {
                            'katello/api/v2/subscriptions' => [:delete_manifest]

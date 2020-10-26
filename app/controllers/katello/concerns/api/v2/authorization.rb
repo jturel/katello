@@ -22,6 +22,7 @@ module Katello
 
       def find_authorized_katello_resource
         found_entity = nil
+        byebug
         ::Foreman::AccessControl.permissions_for_controller_action(path_to_authenticate).each do |permission|
           next unless found_entity.blank?
           finder_scope = permission&.finder_scope

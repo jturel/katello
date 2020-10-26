@@ -1,6 +1,8 @@
 module Katello
   class Content < Katello::Model
     include Katello::Glue::Candlepin::Content
+    include Katello::Authorization::Content
+
     has_many :product_contents, :class_name => 'Katello::ProductContent', :dependent => :destroy
     has_many :products, :through => :product_contents
     belongs_to :organization, :inverse_of => :contents, :class_name => "::Organization"

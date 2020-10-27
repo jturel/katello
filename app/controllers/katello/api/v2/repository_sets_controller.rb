@@ -122,7 +122,6 @@ module Katello
     end
 
     def find_product_content
-      byebug
       if @product.present?
         @product_content = @product.product_content_by_id(params[:id])
       else
@@ -134,7 +133,6 @@ module Katello
     end
 
     def find_product_or_organization
-      byebug
       if params[:product_id]
         find_product
       else
@@ -143,7 +141,6 @@ module Katello
     end
 
     def find_product
-      byebug
       @product = Product.find_by(:id => params[:product_id])
       throw_resource_not_found(name: 'product', id: params[:product_id]) if @product.nil?
       @organization = @product.organization

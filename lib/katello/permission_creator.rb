@@ -339,12 +339,6 @@ module Katello
                          },
                          :resource_type => 'Katello::Product',
                          :finder_scope => :exportable
-      @plugin.permission :view_subscriptions,
-        {
-          'katello/api/v2/subscriptions' => [:refresh_manifest, :import_manifest],
-          :resource_typ => 'Katello::Product',
-          :finder_scope => :readable
-        }
     end
 
     def subscription_permissions # rubocop:disable Metrics/MethodLength

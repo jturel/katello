@@ -1,17 +1,17 @@
 module Katello
   module Authorization::ProductContent
-      extend ActiveSupport::Concern
+    extend ActiveSupport::Concern
 
-      include Authorizable
+    include Authorizable
 
-      def readable?
-        authorized?(:view_subscription)
+    def readable?
+      authorized?(:view_subscription)
+    end
+
+    module ClassMethods
+      def readable
+        authorized(:view_subscription)
       end
-
-      module ClassMethods
-        def readable
-          authorized(:view_subscription)
-        end
-      end
+    end
   end
 end

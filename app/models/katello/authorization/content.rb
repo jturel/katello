@@ -1,25 +1,25 @@
 module Katello
   module Authorization::Content
-      extend ActiveSupport::Concern
+    extend ActiveSupport::Concern
 
-      include Authorizable
+    include Authorizable
 
-      def readable?
-        authorized?(:view_subscription)
+    def readable?
+      authorized?(:view_subscription)
+    end
+
+    def editable?
+      authorized?(:import_manifest)
+    end
+
+    module ClassMethods
+      def readable
+        authorized(:view_subscription)
       end
 
-      def editable?
-        authorized?(:import_manifest)
+      def editable
+        authorized(:import_manifest)
       end
-
-      module ClassMethods
-        def readable
-          authorized(:view_subscription)
-        end
-
-        def editable
-          authorized(:import_manifest)
-        end
-      end
+    end
   end
 end

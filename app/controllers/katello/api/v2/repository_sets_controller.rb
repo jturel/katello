@@ -134,7 +134,7 @@ module Katello
     end
 
     def find_product(products)
-      @product = Product.readable_by_subscription.find_by(:id => params[:product_id])
+      @product = products
       throw_resource_not_found(name: 'product', id: params[:product_id]) if @product.nil?
       @organization = @product.organization
     end
@@ -148,7 +148,6 @@ module Katello
     end
 
     def find_editable_product_or_organization
-      byebug
       if params[:product_id]
         find_product(Product.editable_by_subscription.find_by(:id => params[:product_id]))
       else

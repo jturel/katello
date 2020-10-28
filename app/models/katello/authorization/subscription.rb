@@ -9,7 +9,7 @@ module Katello
     end
 
     def editable?
-      authorized?(:edit_subscriptions)
+      authorized?(:import_manifest)
     end
 
     module ClassMethods
@@ -18,7 +18,7 @@ module Katello
       end
 
       def editable
-        authorized(:edit_subscriptions)
+        authorized(:import_manifest)
       end
     end
   end

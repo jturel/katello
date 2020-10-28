@@ -61,7 +61,7 @@ module Katello
 
         def by_subscription(subscription_ids)
           relation = Katello::Product.joins(:subscriptions).where("#{Katello::Subscription.table_name}.id": subscription_ids)
-          relation = relation.distinct
+          relation.distinct
         end
 
         def readable_by_subscription

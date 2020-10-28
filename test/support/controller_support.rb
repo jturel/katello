@@ -35,6 +35,7 @@ module ControllerSupport
   end
 
   def assert_protected_action(action_name, allowed_perms, denied_perms = [], organizations = [], expect_404: false, &block)
+    byebug
     assert_authorized(
         :permission => allowed_perms,
         :action => action_name,

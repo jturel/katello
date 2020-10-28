@@ -4,7 +4,8 @@ module Katello
 
     include Katello::Concerns::FilteredAutoCompleteSearch
 
-    before_action :find_product_or_organization
+    before_action :find_readable_product_or_organization, :only => [:index, :show, :available_repositories, :auto_complete_search]
+    before_action :find_editable_product_or_organization, :only => [:enable, :disable]
     before_action :custom_product?
     before_action :find_product_content, :except => [:index, :auto_complete_search]
 
@@ -132,18 +133,27 @@ module Katello
       @product = @product_content.product if @product.nil?
     end
 
-    def find_product_or_organization
+    def find_product(products)
+      @product = Product.readable_by_subscription.find_by(:id => params[:product_id])
+      throw_resource_not_found(name: 'product', id: params[:product_id]) if @product.nil?
+      @organization = @product.organization
+    end
+
+    def find_readable_product_or_organization
       if params[:product_id]
-        find_product
+        find_product(Product.readable_by_subscription.find_by(:id => params[:product_id]))
       else
         @organization = find_organization
       end
     end
 
-    def find_product
-      @product = Product.find_by(:id => params[:product_id])
-      throw_resource_not_found(name: 'product', id: params[:product_id]) if @product.nil?
-      @organization = @product.organization
+    def find_editable_product_or_organization
+      byebug
+      if params[:product_id]
+        find_product(Product.editable_by_subscription.find_by(:id => params[:product_id]))
+      else
+        @organization = find_organization
+      end
     end
 
     def custom_product?

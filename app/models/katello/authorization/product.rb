@@ -59,6 +59,19 @@ module Katello
                .in_product(::Katello::Product.readable)
         end
 
+        def by_subscription(subscription_ids)
+          relation = Katello::Product.joins(:subscriptions).where("#{Katello::Subscription.table_name}.id": subscription_ids)
+          relation = relation.distinct
+        end
+
+        def readable_by_subscription
+          by_subscription(Katello::Subscription.readable.pluck(:id))
+        end
+
+        def editable_by_subscription
+          by_subscription(Katello::Subscription.editable.pluck(:id))
+        end
+
         def syncable?
           ::User.current.can?(:sync_products)
         end

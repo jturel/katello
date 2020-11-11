@@ -2,8 +2,6 @@ module Katello
   module Authorization::Content
     extend ActiveSupport::Concern
 
-    include Authorizable
-
     def readable?
       authorized?(:view_subscription)
     end

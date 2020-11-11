@@ -4,10 +4,11 @@ module Katello
 
     include Katello::Concerns::FilteredAutoCompleteSearch
 
-    before_action :find_readable_product, :only => [:index, :show, :available_repositories, :auto_complete_search]
-    before_action :find_editable_product, :only => [:enable, :disable]
-    before_action :find_organization
+    before_action :set_readable_product_scope, only: [:index, :show, :available_repositories, :auto_complete_search]
+    before_action :set_editable_product_scope, only: [:enable, :disable]
+    before_action :find_product
     before_action :custom_product?
+    before_action :find_organization
     before_action :find_product_content, :except => [:index, :auto_complete_search]
 
     resource_description do
@@ -127,26 +128,27 @@ module Katello
       if @product.present?
         @product_content = @product.product_content_by_id(params[:id])
       else
-        content = Katello::Content.readable_by_subscription.where(cp_content_id: params[:id], organization: @organization)
-        @product_content = Katello::ProductContent.joins(:content).merge(content).first
+        content = Katello::Content.where(cp_content_id: params[:id], organization: @organization)
+        product_contents = Katello::ProductContent.joins(:product).merge(@product_scope)
+        @product_content = product_contents.joins(:content).merge(content).first
+        @product = @product_content&.product
       end
       throw_resource_not_found(name: 'repository set', id: params[:id]) if @product_content.nil?
-      @product = @product_content.product
     end
 
-    def find_product(relation)
+    def find_product
       if params[:product_id]
-        @product = relation.find_by(id: params[:product_id])
+        @product = @product_scope.find_by(id: params[:product_id])
         throw_resource_not_found(name: 'product', id: params[:product_id]) if @product.nil?
       end
     end
 
-    def find_readable_product
-      find_product(Product.readable_by_subscription)
+    def set_readable_product_scope
+      @product_scope = Katello::Product.readable_by_subscription
     end
 
-    def find_editable_product
-      find_product(Product.editable_by_subscription)
+    def set_editable_product_scope
+      @product_scope = Katello::Product.editable_by_subscription
     end
 
     def find_organization

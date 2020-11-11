@@ -4,8 +4,9 @@ module Katello
 
     include Katello::Concerns::FilteredAutoCompleteSearch
 
-    before_action :find_readable_product_or_organization, :only => [:index, :show, :available_repositories, :auto_complete_search]
-    before_action :find_editable_product_or_organization, :only => [:enable, :disable]
+    before_action :find_readable_product, :only => [:index, :show, :available_repositories, :auto_complete_search]
+    before_action :find_editable_product, :only => [:enable, :disable]
+    before_action :find_organization
     before_action :custom_product?
     before_action :find_product_content, :except => [:index, :auto_complete_search]
 
@@ -128,31 +129,28 @@ module Katello
       else
         content = Katello::Content.readable.find_by(:cp_content_id => params[:id], :organization_id => @organization[:id])
         @product_content = Katello::ProductContent.readable.find_by(:content_id => content.id)
+        @product = @product_content.product
       end
       throw_resource_not_found(name: 'repository set', id: params[:id]) if @product_content.nil?
-      @product = @product_content.product if @product.nil?
     end
 
-    def find_product(products)
-      @product = products
-      throw_resource_not_found(name: 'product', id: params[:product_id]) if @product.nil?
-      @organization = @product.organization
-    end
-
-    def find_readable_product_or_organization
+    def find_product(relation)
       if params[:product_id]
-        find_product(Product.readable_by_subscription.find_by(:id => params[:product_id]))
-      else
-        @organization = find_organization
+        @product = relation.find_by(id: params[:product_id])
+        throw_resource_not_found(name: 'product', id: params[:product_id]) if @product.nil?
       end
     end
 
-    def find_editable_product_or_organization
-      if params[:product_id]
-        find_product(Product.editable_by_subscription.find_by(:id => params[:product_id]))
-      else
-        @organization = find_organization
-      end
+    def find_readable_product
+      find_product(Product.readable_by_subscription)
+    end
+
+    def find_editable_product
+      find_product(Product.editable_by_subscription)
+    end
+
+    def find_organization
+      @organization = @product&.organization || super
     end
 
     def custom_product?

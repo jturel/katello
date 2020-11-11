@@ -127,11 +127,11 @@ module Katello
       if @product.present?
         @product_content = @product.product_content_by_id(params[:id])
       else
-        content = Katello::Content.readable.find_by(:cp_content_id => params[:id], :organization_id => @organization[:id])
-        @product_content = Katello::ProductContent.readable.find_by(:content_id => content.id)
-        @product = @product_content.product
+        content = Katello::Content.readable_by_subscription.where(cp_content_id: params[:id], organization: @organization)
+        @product_content = Katello::ProductContent.joins(:content).merge(content).first
       end
       throw_resource_not_found(name: 'repository set', id: params[:id]) if @product_content.nil?
+      @product = @product_content.product
     end
 
     def find_product(relation)

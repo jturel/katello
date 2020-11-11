@@ -8,10 +8,6 @@ module Katello
       authorized?(:view_subscriptions)
     end
 
-    def editable?
-      authorized?(:import_manifest)
-    end
-
     module ClassMethods
       def readable
         authorized(:view_subscriptions)

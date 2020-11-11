@@ -347,8 +347,7 @@ module Katello
                            'katello/api/v2/subscriptions' => [:index, :show, :available, :manifest_history, :auto_complete_search],
                            'katello/api/v2/repository_sets' => [:index, :show, :available_repositories, :auto_complete_search]
                          },
-                         :resource_type => 'Katello::Subscription',
-                         :finder_scope => :readable
+                         :resource_type => 'Katello::Subscription'
       @plugin.permission :attach_subscriptions,
                          {
                            'katello/api/v2/subscriptions' => [:create]
@@ -364,8 +363,7 @@ module Katello
                            'katello/api/v2/subscriptions' => [:upload, :refresh_manifest],
                            'katello/api/v2/repository_sets' => [:enable, :disable]
                          },
-                         :resource_type => 'Katello::Subscription',
-                         :finder_scope => :editable
+                         :resource_type => 'Katello::Subscription'
       @plugin.permission :delete_manifest,
                          {
                            'katello/api/v2/subscriptions' => [:delete_manifest]

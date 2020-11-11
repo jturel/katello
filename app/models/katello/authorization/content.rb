@@ -11,12 +11,8 @@ module Katello
     end
 
     module ClassMethods
-      def readable
-        authorized(:view_subscription)
-      end
-
-      def editable
-        authorized(:import_manifest)
+      def readable_by_subscription
+        merge(Katello::Subscription.readable)
       end
     end
   end

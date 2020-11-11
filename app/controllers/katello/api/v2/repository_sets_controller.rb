@@ -105,7 +105,8 @@ module Katello
 
     def index_relation
       if @product.nil?
-        relation = @organization.product_contents.displayable
+        authorized_product_contents = Katello::ProductContent.joins(:product).merge(@product_scope)
+        relation = @organization.product_contents.merge(authorized_product_contents).displayable
       else
         relation = @product.displayable_product_contents
       end
@@ -129,8 +130,8 @@ module Katello
         @product_content = @product.product_content_by_id(params[:id])
       else
         content = Katello::Content.where(cp_content_id: params[:id], organization: @organization)
-        product_contents = Katello::ProductContent.joins(:product).merge(@product_scope)
-        @product_content = product_contents.joins(:content).merge(content).first
+        authorized_product_contents = Katello::ProductContent.joins(:product).merge(@product_scope)
+        @product_content = authorized_product_contents.joins(:content).merge(content).first
         @product = @product_content&.product
       end
       throw_resource_not_found(name: 'repository set', id: params[:id]) if @product_content.nil?

@@ -12,10 +12,6 @@ module Katello
       def readable
         authorized(:view_subscriptions)
       end
-
-      def editable
-        authorized(:import_manifest)
-      end
     end
   end
 end

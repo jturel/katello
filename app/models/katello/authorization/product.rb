@@ -59,14 +59,6 @@ module Katello
                .in_product(::Katello::Product.readable)
         end
 
-        def readable_by_subscription
-          joins(:subscriptions).merge(Katello::Subscription.readable)
-        end
-
-        def editable_by_subscription
-          joins(:subscriptions).merge(Katello::Subscription.editable)
-        end
-
         def syncable?
           ::User.current.can?(:sync_products)
         end

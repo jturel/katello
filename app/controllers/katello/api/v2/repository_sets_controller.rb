@@ -145,11 +145,11 @@ module Katello
     end
 
     def set_readable_product_scope
-      @product_scope = Katello::Product.readable_by_subscription
+      @product_scope = Katello::Product.readable
     end
 
     def set_editable_product_scope
-      @product_scope = Katello::Product.editable_by_subscription
+      @product_scope = Katello::Product.editable
     end
 
     def find_organization

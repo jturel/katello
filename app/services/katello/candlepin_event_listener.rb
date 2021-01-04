@@ -1,4 +1,5 @@
 module Katello
+  # TODO: Move this class to app/lib/katello/event_daemon/services with other service definitions
   class CandlepinEventListener
     STATUS_CACHE_KEY = 'candlepin_events_status'.freeze
 

@@ -55,6 +55,9 @@ module Katello
           :queue_name => 'katello.candlepin',
           :subscription_name => 'candlepin_events',
           :client_id => 'katello_candlepin_event_monitor'
+        },
+        :qpid => {
+
         }
       }
 

@@ -3,12 +3,22 @@ module Katello
     class Dispatcher
       include Katello::Agent::Connection
 
-      def self.install_package(host_id:, consumer_id:, packages:, content_type: 'rpm')
+      def self.install_package(host_id:, consumer_id:, packages:)
         message = Katello::Agent::InstallPackageMessage.new(
-          host_id: host_id,
           consumer_id: consumer_id,
-          packages: packages,
-          content_type: content_type
+          packages: packages
+        )
+
+        dispatch(message) do |message, history|
+          history.host_id = host_id
+          yield(message, history) if block_given?
+        end
+      end
+
+      def self.remove_package(host_id:, consumer_id:, packages:)
+        message = Katello::Agent::RemovePackageMessage.new(
+          consumer_id: consumer_id,
+          packages: packages
         )
 
         dispatch(message) do |message, history|
@@ -22,7 +32,8 @@ module Katello
           history = Katello::Agent::DispatchHistory.new
           yield(message, history) if block_given?
           history.save!
-          send_message(message, history)
+          message.dispatch_history_id = history.id
+          send_message(message)
           history
         end
       end

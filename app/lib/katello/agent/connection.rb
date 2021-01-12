@@ -10,9 +10,8 @@ module Katello
           close_connection
         end
 
-        def self.send_message(message, history)
-          translated = translate_message(message, history)
-          @agent_connection.send_message("pulp.agent.#{message.consumer_id}", translated)
+        def self.send_message(message)
+          @agent_connection.send_message(message.recipient_address, content: message.to_s)
         end
 
         def self.fetch_agent_messages(sleep_seconds:)
@@ -30,14 +29,6 @@ module Katello
 
         def self.settings
           SETTINGS[:katello][:agent]
-        end
-
-        def self.translate_message(katello_message, history)
-          content = katello_message.json
-          content[:data]['dispatch_history_id'] = history.id
-          {
-            content: content.to_json
-          }
         end
       end
     end

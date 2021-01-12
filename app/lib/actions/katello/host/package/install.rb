@@ -3,7 +3,7 @@ module Actions
     module Host
       module Package
         class Install < Actions::EntryAction
-          include Helpers::Presenter
+#          include Helpers::Presenter
 
           def plan(host, packages)
             Type! host, ::Host::Managed
@@ -43,9 +43,11 @@ module Actions
             [input[:packages].join(", ")] + super
           end
 
+=begin
           def presenter
             Helpers::Presenter::Delegated.new(self, planned_actions(Pulp::Consumer::ContentInstall))
           end
+=end
 
           def rescue_strategy
             Dynflow::Action::Rescue::Skip

@@ -7,11 +7,30 @@ module Actions
 
           def plan(host, packages)
             action_subject(host, :hostname => host.name, :packages => packages)
-            plan_action(Pulp::Consumer::ContentUninstall,
-                        consumer_uuid: host.content_facet.uuid,
-                        type:          'rpm',
-                        args:          packages)
-            plan_self(:host_id => host.id)
+
+            plan_self(
+              host_id: host.id,
+              consumer_uuid: host.content_facet.uuid,
+              packages: packages
+            )
+          end
+
+          def run(event = nil)
+            case event
+            when nil
+              suspend do |suspended_action|
+                ::Katello::Agent::Dispatcher.remove_package(
+                  host_id: input[:host_id],
+                  consumer_id: input[:consumer_uuid],
+                  packages: input[:packages]
+                ) do |_message, history|
+                  history.dynflow_execution_plan_id = suspended_action.execution_plan_id
+                  history.dynflow_step_id = suspended_action.step_id
+                end
+              end
+            when :finished
+              Rails.logger.info("\n\n\nRESUMING ACTION????\n\n\n")
+            end
           end
 
           def humanized_name

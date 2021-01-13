@@ -3,14 +3,8 @@ require 'katello_test_helper'
 module ::Actions::Katello::Host::Package
   class TestBase < ActiveSupport::TestCase
     include Dynflow::Testing
-    #include Support::Actions::Fixtures
 
-    let(:content_facet) { mock('a_system', uuid: 'uuid').mimic!(::Katello::Host::ContentFacet) }
-    let(:host) do
-      host_mock = mock('a_host', content_facet: content_facet, id: 42).mimic!(::Host::Managed)
-      host_mock.stubs('name').returns('foobar')
-      host_mock
-    end
+    let(:host) { hosts(:one) }
 
     let(:action) do
       action = create_action action_class
@@ -18,7 +12,7 @@ module ::Actions::Katello::Host::Package
       plan_action action, host, packages
     end
 
-    let(:dispatch_history) { stub('dispatch history', id: 100).mimic!(::Katello::Agent::DispatchHistory) }
+    let(:dispatch_history) { ::Katello::Agent::DispatchHistory.create!(host_id: host.id) }
   end
 
   class InstallTest < TestBase
@@ -28,6 +22,12 @@ module ::Actions::Katello::Host::Package
       ::Katello::Agent::Dispatcher.expects(:install_package).returns(dispatch_history)
 
       run_action action
+
+      dispatch_history.reload
+
+      assert_equal host.id, dispatch_history.host_id
+      refute_nil dispatch_history.dynflow_execution_plan_id
+      refute_nil dispatch_history.dynflow_step_id
     end
 
     def test_humanized_output
@@ -86,6 +86,12 @@ module ::Actions::Katello::Host::Package
         ::Katello::Agent::Dispatcher.expects(:remove_package).returns(dispatch_history)
 
         run_action action
+
+        dispatch_history.reload
+
+        assert_equal host.id, dispatch_history.host_id
+        refute_nil dispatch_history.dynflow_execution_plan_id
+        refute_nil dispatch_history.dynflow_step_id
       end
 
       def test_humanized_output

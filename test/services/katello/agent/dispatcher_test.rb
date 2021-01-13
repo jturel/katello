@@ -12,7 +12,6 @@ module Katello
 
         dispatch_history = Katello::Agent::Dispatcher.install_package(
           host_id: @host.id,
-          consumer_id: 'uuid',
           packages: ['foo']
         )
 
@@ -24,7 +23,6 @@ module Katello
 
         dispatch_history = Katello::Agent::Dispatcher.remove_package(
           host_id: @host.id,
-          consumer_id: 'uuid',
           packages: ['foo']
         )
 

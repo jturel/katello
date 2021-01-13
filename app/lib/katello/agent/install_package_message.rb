@@ -1,16 +1,16 @@
 module Katello
   module Agent
     class InstallPackageMessage < BaseMessage
-      def initialize(packages:, consumer_id:)
+      def initialize(packages:, host_id:)
         @packages = packages
-        @consumer_id = consumer_id
+        @host_id = host_id
         @content_type = 'rpm'
         @method = 'install'
-        super()
       end
 
       protected
 
+      # move to helper
       def units
         @packages.map do |package|
           nvra = ::Katello::Util::Package.parse_nvrea_nvre(package)

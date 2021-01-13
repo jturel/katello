@@ -2,35 +2,20 @@ module Actions
   module Katello
     module Host
       module Package
-        class Install < Actions::EntryAction
-          include Helpers::Presenter
-
+        class Install < Actions::Katello::AgentAction
           def plan(host, packages)
             Type! host, ::Host::Managed
 
             action_subject(host, :hostname => host.name, :packages => packages)
 
-            plan_self(:host_id => host.id, :consumer_uuid => host.content_facet.uuid, :packages => packages)
+            plan_self(:host_id => host.id, :packages => packages)
           end
 
-          def run(event = nil)
-            case event
-            when nil
-              suspend do |suspended_action|
-                dispatch_history = ::Katello::Agent::Dispatcher.install_package(
-                  host_id: input[:host_id],
-                  consumer_id: input[:consumer_uuid],
-                  packages: input[:packages]
-                ) do |_message, history|
-                  history.dynflow_execution_plan_id = suspended_action.execution_plan_id
-                  history.dynflow_step_id = suspended_action.step_id
-                end
-                output[:dispatch_history_id] = dispatch_history.id
-              end
-              schedule_timeout(Setting['content_action_accept_timeout'])
-            when :finished
-              Rails.logger.info("\n\n\nRESUMING ACTION????\n\n\n")
-            end
+          def dispatch_agent_action
+            ::Katello::Agent::Dispatcher.install_package(
+              host_id: input[:host_id],
+              packages: input[:packages]
+            )
           end
 
           def humanized_name
@@ -43,14 +28,6 @@ module Actions
 
           def humanized_input
             [input[:packages].join(", ")] + super
-          end
-
-          def presenter
-            Actions::Katello::Agent::DispatchHistoryPresenter.new(self)
-          end
-
-          def rescue_strategy
-            Dynflow::Action::Rescue::Skip
           end
 
           def finalize

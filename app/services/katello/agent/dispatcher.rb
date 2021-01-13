@@ -3,39 +3,31 @@ module Katello
     class Dispatcher
       include Katello::Agent::Connection
 
-      def self.install_package(host_id:, consumer_id:, packages:)
+      def self.install_package(host_id:, packages:)
         message = Katello::Agent::InstallPackageMessage.new(
-          consumer_id: consumer_id,
+          host_id: host_id,
           packages: packages
         )
 
-        dispatch(message) do |message, history|
-          history.host_id = host_id
-          yield(message, history) if block_given?
-        end
+        dispatch(message)
       end
 
-      def self.remove_package(host_id:, consumer_id:, packages:)
+      def self.remove_package(host_id:, packages:)
         message = Katello::Agent::RemovePackageMessage.new(
-          consumer_id: consumer_id,
+          host_id: host_id,
           packages: packages
         )
 
-        dispatch(message) do |message, history|
-          history.host_id = host_id
-          yield(message, history) if block_given?
-        end
+        dispatch(message)
       end
 
       def self.dispatch(message)
-        ActiveRecord::Base.transaction do
-          history = Katello::Agent::DispatchHistory.new
-          yield(message, history) if block_given?
-          history.save!
-          message.dispatch_history_id = history.id
-          send_message(message)
-          history
-        end
+        history = Katello::Agent::DispatchHistory.new
+        history.host_id = message.host_id
+        history.save!
+        message.dispatch_history_id = history.id
+        send_message(message)
+        history
       end
     end
   end

@@ -19,7 +19,7 @@ module Actions
             case event
             when nil
               suspend do |suspended_action|
-                ::Katello::Agent::Dispatcher.remove_package(
+                dispatch_history = ::Katello::Agent::Dispatcher.remove_package(
                   host_id: input[:host_id],
                   consumer_id: input[:consumer_uuid],
                   packages: input[:packages]
@@ -27,6 +27,7 @@ module Actions
                   history.dynflow_execution_plan_id = suspended_action.execution_plan_id
                   history.dynflow_step_id = suspended_action.step_id
                 end
+                output[:dispatch_history_id] = dispatch_history.id
               end
             when :finished
               Rails.logger.info("\n\n\nRESUMING ACTION????\n\n\n")
@@ -60,8 +61,7 @@ module Actions
           end
 
           def presenter
-            Helpers::Presenter::Delegated.new(
-                self, planned_actions(Pulp::Consumer::ContentUninstall))
+            Actions::Katello::Agent::DispatchHistoryPresenter.new(self)
           end
 
           def rescue_strategy

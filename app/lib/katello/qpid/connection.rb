@@ -61,7 +61,7 @@ module Katello
       end
 
       def receive(receiver)
-        Rails.logger.info("Receiving with receiver=#{receiver.object_id} session=#{receiver.session.object_id} connection=#{receiver.session.connection.object_id}")
+        #Rails.logger.info("Receiving with receiver=#{receiver.object_id} session=#{receiver.session.object_id} connection=#{receiver.session.connection.object_id}")
         begin
           message = fetch_message(receiver)
           while message

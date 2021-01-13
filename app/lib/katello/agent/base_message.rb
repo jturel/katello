@@ -1,25 +1,23 @@
 module Katello
   module Agent
     class BaseMessage
-      attr_reader :json
       attr_accessor :dispatch_history_id
       attr_reader :recipient_address
 
       def initialize
         @recipient_address = "pulp.agent.#{@consumer_id}"
-        @json = {
+      end
+
+      def json
+        {
           data: {
-            consumer_id: @consumer_id
+            consumer_id: @consumer_id,
+            dispatch_history_id: self.dispatch_history_id
           },
           replyto: "pulp.task",
           request: {
             args: [
-              [
-                {
-                  type_id: @content_type,
-                  unit_key: {name: "screen"}
-                }
-              ],
+              self.units,
               {
                 importkeys: true
               }
@@ -38,7 +36,7 @@ module Katello
       end
 
       def to_s
-        @json.to_json
+        json.to_json
       end
     end
   end

@@ -3,7 +3,7 @@ module Actions
     module Host
       module Package
         class Install < Actions::EntryAction
-#          include Helpers::Presenter
+          include Helpers::Presenter
 
           def plan(host, packages)
             Type! host, ::Host::Managed
@@ -17,7 +17,7 @@ module Actions
             case event
             when nil
               suspend do |suspended_action|
-                ::Katello::Agent::Dispatcher.install_package(
+                dispatch_history = ::Katello::Agent::Dispatcher.install_package(
                   host_id: input[:host_id],
                   consumer_id: input[:consumer_uuid],
                   packages: input[:packages]
@@ -25,7 +25,9 @@ module Actions
                   history.dynflow_execution_plan_id = suspended_action.execution_plan_id
                   history.dynflow_step_id = suspended_action.step_id
                 end
+                output[:dispatch_history_id] = dispatch_history.id
               end
+              schedule_timeout(Setting['content_action_accept_timeout'])
             when :finished
               Rails.logger.info("\n\n\nRESUMING ACTION????\n\n\n")
             end
@@ -43,11 +45,9 @@ module Actions
             [input[:packages].join(", ")] + super
           end
 
-=begin
           def presenter
-            Helpers::Presenter::Delegated.new(self, planned_actions(Pulp::Consumer::ContentInstall))
+            Actions::Katello::Agent::DispatchHistoryPresenter.new(self)
           end
-=end
 
           def rescue_strategy
             Dynflow::Action::Rescue::Skip

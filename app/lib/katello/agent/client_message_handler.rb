@@ -48,9 +48,13 @@ module Katello
             return
           end
 
-          #dispatch_history.data = json.dig('data', '')
-          #dispatch_history.save!
 
+          if json['result']
+            dispatch_history.status = json['result']
+            dispatch_history.save!
+          end
+
+          # if we can't save, be graceful
           ForemanTasks.dynflow.world.event(dispatch_history.dynflow_execution_plan_id, dispatch_history.dynflow_step_id, :finished)
           logger.info("triggered finished event for execution plan #{dispatch_history.dynflow_execution_plan_id}")
         else

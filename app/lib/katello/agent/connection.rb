@@ -11,6 +11,7 @@ module Katello
         end
 
         def self.send_message(message)
+          Rails.logger.info("sending message #{message.to_s}")
           @agent_connection.send_message(message.recipient_address, content: message.to_s)
         end
 

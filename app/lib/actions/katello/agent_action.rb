@@ -7,6 +7,10 @@ module Actions
         fail NotImplementedError
       end
 
+      def agent_action_type
+        fail NotImplementedError
+      end
+
       def run(event = nil)
         case event
         when nil
@@ -21,17 +25,25 @@ module Actions
             output[:dispatch_history_id] = history.id
           end
           schedule_timeout(Setting['content_action_accept_timeout'])
+        when :accepted
+          schedule_timeout(Setting['content_action_finish_timeout'])
         when :finished
           Rails.logger.info("\n\n\nRESUMING ACTION????\n\n\n")
         end
       end
 
       def presenter
-        Actions::Katello::Agent::DispatchHistoryPresenter.new(self)
+        Actions::Katello::Agent::DispatchHistoryPresenter.new(dispatch_history)
       end
 
       def rescue_strategy
         Dynflow::Action::Rescue::Skip
+      end
+
+      def dispatch_history
+        if output[:dispatch_history_id]
+          ::Katello::Agent::DispatchHistory.find_by_id(output[:dispatch_history_id])
+        end
       end
     end
   end

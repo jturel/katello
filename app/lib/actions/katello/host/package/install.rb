@@ -18,6 +18,10 @@ module Actions
             )
           end
 
+          def agent_action_type
+            :content_install
+          end
+
           def humanized_name
             if input.try(:[], :hostname)
               _("Install package for %s") % input[:hostname]

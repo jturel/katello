@@ -48,9 +48,10 @@ module Katello
             return
           end
 
+          result_details = json.dig('result', 'retval', 'details')
 
-          if json['result']
-            dispatch_history.status = json['result']
+          if result_details
+            dispatch_history.status = result_details
             dispatch_history.save!
           end
 

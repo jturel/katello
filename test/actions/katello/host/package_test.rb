@@ -38,26 +38,6 @@ module ::Actions::Katello::Host::Package
 
     describe '#humanized_output' do
 =begin
-      let :action do
-        create_action(action_class).tap do |action|
-          action.stubs(planned_actions: [pulp_action])
-        end
-      end
-      let(:pulp_action) { fixture_action(pulp_action_class, output: fixture_variant) }
-
-      describe 'successfully installed' do
-        let(:fixture_variant) { :success }
-
-        specify do
-          assert_equal action.humanized_output, <<~OUTPUT.chomp
-            1:emacs-23.1-21.el6_2.3.x86_64
-            libXaw-1.0.11-2.el6.x86_64
-            libXmu-1.1.1-2.el6.x86_64
-            libotf-0.9.9-3.1.el6.x86_64
-          OUTPUT
-        end
-      end
-
       describe 'no packages installed' do
         let(:fixture_variant) { :no_packages }
 

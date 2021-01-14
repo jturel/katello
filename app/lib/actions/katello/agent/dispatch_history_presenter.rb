@@ -1,20 +1,53 @@
 module Actions
   module Katello
     module Agent
-      class DispatchHistoryPresenter < Helpers::Presenter::Base
-        def initialize(action)
-          @action = action
+      class DispatchHistoryPresenter
+        def initialize(dispatch_history, action_type)
+          @status = dispatch_history&.status&.with_indifferent_access
+          @action_type = action_type
         end
 
         def humanized_output
-          history_id = @action.output[:dispatch_history_id]
+          return unless @status
 
-          if history_id
-            dispatch_history = ::Katello::Agent::DispatchHistory.find_by_id(history_id)
+          result = extract_result
+          ret = []
 
-            if dispatch_history&.status
-              dispatch_history.status
+          if result
+            if result.is_a?(String)
+              ret << result
+            else
+              ret.concat(result.map { |package| package[:qname] })
             end
+          else
+            ret << humanized_no_package
+          end
+
+          ret.sort.join("\n")
+        end
+
+        private
+
+        def extract_result
+          data = @status.slice(:erratum, :package_group, :rpm)
+
+          data.each do |k,v|
+            if v[:succeeded] == true
+              return v[:details][:resolved] + v[:details][:deps] 
+            elsif v[:succeeded] == false
+              return v[:message]
+            end
+          end
+
+          nil
+        end
+
+        def humanized_no_package
+          case @action_type
+          when :content_install
+            _("No new packages installed")
+          when :content_uninstall
+            _("No packages removed")
           end
         end
       end

@@ -16,6 +16,10 @@ module Actions
             )
           end
 
+          def agent_action_type
+            :content_uninstall
+          end
+
           def humanized_name
             if input.try(:[], :hostname)
               _("Remove package for %s") % input[:hostname]

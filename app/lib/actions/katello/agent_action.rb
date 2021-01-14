@@ -33,7 +33,7 @@ module Actions
       end
 
       def presenter
-        Actions::Katello::Agent::DispatchHistoryPresenter.new(dispatch_history)
+        Actions::Katello::Agent::DispatchHistoryPresenter.new(dispatch_history, agent_action_type)
       end
 
       def rescue_strategy

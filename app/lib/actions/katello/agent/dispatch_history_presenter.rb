@@ -29,9 +29,7 @@ module Actions
         private
 
         def extract_result
-          data = @status.slice(:erratum, :package_group, :rpm)
-
-          data.each do |k,v|
+          @status.each do |k,v|
             if v[:succeeded] == true
               return v[:details][:resolved] + v[:details][:deps] 
             elsif v[:succeeded] == false

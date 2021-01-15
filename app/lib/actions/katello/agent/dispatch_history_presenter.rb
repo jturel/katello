@@ -29,9 +29,9 @@ module Actions
         private
 
         def extract_result
-          @status.each do |k,v|
+          @status.each_value do |v|
             if v[:succeeded] == true
-              return v[:details][:resolved] + v[:details][:deps] 
+              return v[:details][:resolved] + v[:details][:deps]
             elsif v[:succeeded] == false
               return v[:message]
             end

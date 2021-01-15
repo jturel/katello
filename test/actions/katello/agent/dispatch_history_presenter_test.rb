@@ -4,24 +4,25 @@ module Actions
   module Katello
     module Agent
       class DispatchHistoryPresenterTest < ActiveSupport::TestCase
+        let(:content_type) { "rpm" }
         let(:action_type) { @action_type || :content_install }
         let(:dispatch_history) { stub(status: @status) }
         let(:presenter) { Actions::Katello::Agent::DispatchHistoryPresenter.new(dispatch_history, action_type) }
 
-        def test_humanized_output_rpm
+        def test_humanized_output_succeeded
           @status = {
-            "rpm" => {
+            content_type => {
               "details" => {
                 "resolved" => [
-                  {"name"=>"emacs", "qname"=>"1:emacs-23.1-21.el6_2.3.x86_64", "epoch"=>"1", "version"=>"23.1", "release"=>"21.el6_2.3", "arch"=>"x86_64", "repoid"=>"eng-Server"}
+                  {"name" => "emacs", "qname" => "1:emacs-23.1-21.el6_2.3.x86_64", "epoch" => "1", "version" => "23.1", "release" => "21.el6_2.3", "arch" => "x86_64", "repoid" => "eng-Server"}
                 ],
-               "deps" => [
-                 {"name"=>"libXmu", "qname"=>"libXmu-1.1.1-2.el6.x86_64", "epoch"=>"0", "version"=>"1.1.1", "release"=>"2.el6", "arch"=>"x86_64", "repoid"=>"eng-Server"},
-                 {"name"=>"libXaw", "qname"=>"libXaw-1.0.11-2.el6.x86_64", "epoch"=>"0", "version"=>"1.0.11", "release"=>"2.el6", "arch"=>"x86_64", "repoid"=>"eng-Server"},
-                 {"name"=>"libotf", "qname"=>"libotf-0.9.9-3.1.el6.x86_64", "epoch"=>"0", "version"=>"0.9.9", "release"=>"3.1.el6", "arch"=>"x86_64", "repoid"=>"eng-Server"}
-               ]
-             },
-             "succeeded"=>true
+                "deps" => [
+                  {"name" => "libXmu", "qname" => "libXmu-1.1.1-2.el6.x86_64", "epoch" => "0", "version" => "1.1.1", "release" => "2.el6", "arch" => "x86_64", "repoid" => "eng-Server"},
+                  {"name" => "libXaw", "qname" => "libXaw-1.0.11-2.el6.x86_64", "epoch" => "0", "version" => "1.0.11", "release" => "2.el6", "arch" => "x86_64", "repoid" => "eng-Server"},
+                  {"name" => "libotf", "qname" => "libotf-0.9.9-3.1.el6.x86_64", "epoch" => "0", "version" => "0.9.9", "release" => "3.1.el6", "arch" => "x86_64", "repoid" => "eng-Server"}
+                ]
+              },
+              "succeeded" => true
             }
           }
 
@@ -33,9 +34,29 @@ module Actions
           OUTPUT
         end
 
-        def test_humanized_output_rpm_install_no_action
+        def test_humanized_output_failed
           @status = {
-            "rpm" => {
+            content_type => {
+              "details" => {
+                "resolved" => [
+                  {"name" => "emacs", "qname" => "1:emacs-23.1-21.el6_2.3.x86_64", "epoch" => "1", "version" => "23.1", "release" => "21.el6_2.3", "arch" => "x86_64", "repoid" => "eng-Server"}
+                ],
+                "deps" => [
+                  {"name" => "libXmu", "qname" => "libXmu-1.1.1-2.el6.x86_64", "epoch" => "0", "version" => "1.1.1", "release" => "2.el6", "arch" => "x86_64", "repoid" => "eng-Server"},
+                  {"name" => "libXaw", "qname" => "libXaw-1.0.11-2.el6.x86_64", "epoch" => "0", "version" => "1.0.11", "release" => "2.el6", "arch" => "x86_64", "repoid" => "eng-Server"},
+                  {"name" => "libotf", "qname" => "libotf-0.9.9-3.1.el6.x86_64", "epoch" => "0", "version" => "0.9.9", "release" => "3.1.el6", "arch" => "x86_64", "repoid" => "eng-Server"}
+                ]
+              },
+              "succeeded" => false
+            }
+          }
+
+          assert_equal "", presenter.humanized_output
+        end
+
+        def test_humanized_output_install_no_packages
+          @status = {
+            content_type => {
               "details" => {
                 "resolved" => [],
                 "deps" => [],
@@ -47,10 +68,10 @@ module Actions
           assert_equal 'No new packages installed', presenter.humanized_output
         end
 
-        def test_humanized_output_rpm_uninstall_no_action
+        def test_humanized_output_uninstall_no_packages
           @action_type = :content_uninstall
           @status = {
-            "rpm" => {
+            content_type => {
               "details" => {
                 "resolved" => [],
                 "deps" => [],

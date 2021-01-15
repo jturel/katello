@@ -21,6 +21,15 @@ module Katello
         dispatch(message)
       end
 
+      def self.install_errata(host_id:, errata_ids:)
+        message = Katello::Agent::InstallErrataMessage.new(
+          host_id: host_id,
+          errata_ids: errata_ids
+        )
+
+        dispatch(message)
+      end
+
       def self.dispatch(message)
         history = Katello::Agent::DispatchHistory.new
         history.host_id = message.host_id

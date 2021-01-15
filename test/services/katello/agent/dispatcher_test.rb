@@ -28,6 +28,17 @@ module Katello
 
         assert_equal @host.id, dispatch_history.host_id
       end
+
+      def test_install_errata
+        Katello::Agent::Dispatcher.expects(:send_message)
+
+        dispatch_history = Katello::Agent::Dispatcher.install_errata(
+          host_id: @host.id,
+          errata_ids: ['foo']
+        )
+
+        assert_equal @host.id, dispatch_history.host_id
+      end
     end
   end
 end

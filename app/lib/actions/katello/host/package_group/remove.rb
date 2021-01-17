@@ -7,10 +7,12 @@ module Actions
 
           def plan(host, groups)
             action_subject(host, :groups => groups)
+=begin
             plan_action(Pulp::Consumer::ContentUninstall,
                         consumer_uuid: host.content_facet.uuid,
                         type:          'package_group',
                         args:          groups)
+=end
             plan_self(:host_id => host.id)
           end
 
@@ -20,15 +22,6 @@ module Actions
 
           def humanized_input
             [input[:groups].join(', ')] + super
-          end
-
-          def presenter
-            Helpers::Presenter::Delegated.new(
-                self, planned_actions(Pulp::Consumer::ContentUninstall))
-          end
-
-          def rescue_strategy
-            Dynflow::Action::Rescue::Skip
           end
 
           def finalize

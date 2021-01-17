@@ -8,6 +8,8 @@ module Katello
         @method = 'uninstall'
       end
 
+      protected
+
       def units
         @packages.map do |package|
           nvra = ::Katello::Util::Package.parse_nvrea_nvre(package)

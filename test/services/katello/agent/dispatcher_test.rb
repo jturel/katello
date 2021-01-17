@@ -3,52 +3,25 @@ require 'katello_test_helper'
 module Katello
   module Agent
     class DispatcherTest < ActiveSupport::TestCase
-      def setup
-        @host = hosts(:one)
+      let(:host) { hosts(:one) }
+      let(:valid_params) { { arg1: :foo, host_id: host.id } }
+      let(:agent_message) { stub('dispatch_history_id=' => 100, 'recipient_address' => 'nowhere') }
+
+      class TestMessage
       end
 
-      def test_install_package
+      def test_dispatch
+        Katello::Agent::Dispatcher.register_message(:test, TestMessage)
         Katello::Agent::Dispatcher.expects(:send_message)
+        TestMessage.expects(:new).with(valid_params).returns(agent_message)
 
-        dispatch_history = Katello::Agent::Dispatcher.install_package(
-          host_id: @host.id,
-          packages: ['foo']
-        )
-
-        assert_equal @host.id, dispatch_history.host_id
+        Katello::Agent::Dispatcher.dispatch(:test, valid_params)
       end
 
-      def test_remove_package
-        Katello::Agent::Dispatcher.expects(:send_message)
-
-        dispatch_history = Katello::Agent::Dispatcher.remove_package(
-          host_id: @host.id,
-          packages: ['foo']
-        )
-
-        assert_equal @host.id, dispatch_history.host_id
-      end
-
-      def test_install_errata
-        Katello::Agent::Dispatcher.expects(:send_message)
-
-        dispatch_history = Katello::Agent::Dispatcher.install_errata(
-          host_id: @host.id,
-          errata_ids: ['foo']
-        )
-
-        assert_equal @host.id, dispatch_history.host_id
-      end
-
-      def test_install_package_group
-        Katello::Agent::Dispatcher.expects(:send_message)
-
-        dispatch_history = Katello::Agent::Dispatcher.install_package_group(
-          host_id: @host.id,
-          groups: 'foo'
-        )
-
-        assert_equal @host.id, dispatch_history.host_id
+      def test_dispatch_unregistered
+        assert_raises(StandardError) do
+          Katello::Agent::Dispatcher.dispatch(:test, valid_params)
+        end
       end
     end
   end

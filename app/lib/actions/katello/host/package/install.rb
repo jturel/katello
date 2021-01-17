@@ -12,7 +12,8 @@ module Actions
           end
 
           def dispatch_agent_action
-            ::Katello::Agent::Dispatcher.install_package(
+            ::Katello::Agent::Dispatcher.dispatch(
+              :install_package,
               host_id: input[:host_id],
               packages: input[:packages]
             )

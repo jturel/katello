@@ -12,7 +12,7 @@ module Actions
         let(:dispatch_history) { ::Katello::Agent::DispatchHistory.create!(host_id: host.id) }
 
         def test_run
-          ::Katello::Agent::Dispatcher.expects(dispatcher_method).returns(dispatch_history)
+          ::Katello::Agent::Dispatcher.expects(:dispatch).with(dispatcher_method, dispatcher_params).returns(dispatch_history)
 
           run_action action
 

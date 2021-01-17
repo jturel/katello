@@ -3,47 +3,32 @@ module Katello
     class Dispatcher
       include Katello::Agent::Connection
 
-      def self.install_package(host_id:, packages:)
-        message = Katello::Agent::InstallPackageMessage.new(
-          host_id: host_id,
-          packages: packages
-        )
+      @supported_messages = {}
 
-        dispatch(message)
+      def self.register_message(name, klass)
+        @supported_messages[name] = klass
       end
 
-      def self.remove_package(host_id:, packages:)
-        message = Katello::Agent::RemovePackageMessage.new(
-          host_id: host_id,
-          packages: packages
-        )
+      register_message(:install_package, Katello::Agent::InstallPackageMessage)
+      register_message(:remove_package, Katello::Agent::RemovePackageMessage)
+      register_message(:update_package, Katello::Agent::UpdatePackageMessage)
+      register_message(:install_errata, Katello::Agent::InstallErrataMessage)
+      register_message(:install_package_group, Katello::Agent::InstallPackageGroupMessage)
+      register_message(:remove_package_group, Katello::Agent::RemovePackageGroupMessage)
 
-        dispatch(message)
-      end
+      def self.dispatch(message_type, args)
+        message_class = @supported_messages[message_type]
 
-      def self.install_errata(host_id:, errata_ids:)
-        message = Katello::Agent::InstallErrataMessage.new(
-          host_id: host_id,
-          errata_ids: errata_ids
-        )
+        fail("Unsupported message type") unless message_class
 
-        dispatch(message)
-      end
+        message = message_class.new(**args)
 
-      def self.install_package_group(host_id:, groups:)
-        message = Katello::Agent::InstallPackageGroupMessage.new(
-          host_id: host_id,
-          groups: groups
-        )
-
-        dispatch(message)
-      end
-
-      def self.dispatch(message)
         history = Katello::Agent::DispatchHistory.new
-        history.host_id = message.host_id
+        history.host_id = args[:host_id]
         history.save!
+
         message.dispatch_history_id = history.id
+
         send_message(message)
         history
       end

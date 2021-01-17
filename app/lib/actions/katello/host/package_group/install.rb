@@ -8,11 +8,12 @@ module Actions
 
             action_subject(host, :groups => groups)
 
-            plan_self(:host_id => host.id)
+            plan_self(:host_id => host.id, :groups => groups)
           end
 
           def dispatch_agent_action
-            ::Katello::Agent::Dispatcher.install_package_group(
+            ::Katello::Agent::Dispatcher.dispatch(
+              :install_package_group,
               host_id: input[:host_id],
               groups: input[:groups]
             )

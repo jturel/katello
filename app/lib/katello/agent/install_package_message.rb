@@ -10,7 +10,6 @@ module Katello
 
       protected
 
-      # move to helper
       def units
         @packages.map do |package|
           nvra = ::Katello::Util::Package.parse_nvrea_nvre(package)

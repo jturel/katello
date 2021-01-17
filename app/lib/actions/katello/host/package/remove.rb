@@ -10,7 +10,8 @@ module Actions
           end
 
           def dispatch_agent_action
-            ::Katello::Agent::Dispatcher.remove_package(
+            ::Katello::Agent::Dispatcher.dispatch(
+              :remove_package,
               host_id: input[:host_id],
               packages: input[:packages]
             )

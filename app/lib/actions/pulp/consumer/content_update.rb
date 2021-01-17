@@ -1,7 +1,7 @@
 module Actions
   module Pulp
     module Consumer
-      class ContentUpdate < AbstractContentAction
+      class ContentUpdate < Actions::EntryAction
         include Helpers::Presenter
         include Actions::Pulp::ExpectOneTask
 

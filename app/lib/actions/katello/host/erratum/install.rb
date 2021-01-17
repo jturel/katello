@@ -12,7 +12,8 @@ module Actions
           end
 
           def dispatch_agent_action
-            ::Katello::Agent::Dispatcher.install_errata(
+            ::Katello::Agent::Dispatcher.dispatch(
+              :install_errata,
               host_id: input[:host_id],
               errata_ids: input[:errata_ids]
             )

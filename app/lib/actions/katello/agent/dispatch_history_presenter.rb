@@ -26,6 +26,31 @@ module Actions
           ret.sort.join("\n")
         end
 
+        def error_messages
+          messages = []
+          @status.each_value do |result|
+            if result[:succeeded] && result[:message]
+              messages << result[:message]
+            end
+          end
+          messages
+        end
+
+=begin
+        def errors
+          errorz = @status.map do |_type, result|
+            next unless result[:succeeded]
+
+            {
+              message: result[:message],
+              trace: result[:trace]
+
+            }
+          end
+          errorz.compact!
+        end
+=end
+
         private
 
         def extract_result

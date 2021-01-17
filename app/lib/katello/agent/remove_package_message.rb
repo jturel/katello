@@ -6,7 +6,6 @@ module Katello
         @host_id = host_id
         @content_type = 'rpm'
         @method = 'uninstall'
-        super()
       end
 
       def units

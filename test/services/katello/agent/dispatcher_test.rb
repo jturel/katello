@@ -39,6 +39,17 @@ module Katello
 
         assert_equal @host.id, dispatch_history.host_id
       end
+
+      def test_install_package_group
+        Katello::Agent::Dispatcher.expects(:send_message)
+
+        dispatch_history = Katello::Agent::Dispatcher.install_package_group(
+          host_id: @host.id,
+          groups: 'foo'
+        )
+
+        assert_equal @host.id, dispatch_history.host_id
+      end
     end
   end
 end

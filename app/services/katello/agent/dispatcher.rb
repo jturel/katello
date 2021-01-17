@@ -30,6 +30,15 @@ module Katello
         dispatch(message)
       end
 
+      def self.install_package_group(host_id:, groups:)
+        message = Katello::Agent::InstallPackageGroupMessage.new(
+          host_id: host_id,
+          groups: groups
+        )
+
+        dispatch(message)
+      end
+
       def self.dispatch(message)
         history = Katello::Agent::DispatchHistory.new
         history.host_id = message.host_id

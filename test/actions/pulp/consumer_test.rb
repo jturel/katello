@@ -52,14 +52,8 @@ module ::Actions::Pulp
       assert_equal consumer_name, consumer[:display_name]
     end
 
-    def test_install_content
-      action = plan_consumer_action(::Actions::Pulp::Consumer::ContentInstall)
-      it_runs(action, :extensions, :consumer, :install_content) do |expectation|
-        expectation.with(*expected_extension_params)
-      end
-    end
-
     def test_update_content
+      fail
       action = plan_consumer_action(::Actions::Pulp::Consumer::ContentUpdate)
       it_runs(action, :extensions, :consumer, :update_content) do |expectation|
         expectation.with(*expected_extension_params)
@@ -67,6 +61,7 @@ module ::Actions::Pulp
     end
 
     def test_uninstall_content
+      fail
       action = plan_consumer_action(::Actions::Pulp::Consumer::ContentUninstall)
       expected_extension_params.pop
       it_runs(action, :extensions, :consumer, :uninstall_content) do |expectation|

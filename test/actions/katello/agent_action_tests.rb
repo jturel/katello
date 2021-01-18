@@ -17,8 +17,6 @@ module Actions
           run_action action
 
           assert_equal host.id, dispatch_history.host_id
-          refute_nil dispatch_history.dynflow_execution_plan_id
-          refute_nil dispatch_history.dynflow_step_id
         end
 
         def test_humanized_output

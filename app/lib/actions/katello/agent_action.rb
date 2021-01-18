@@ -13,31 +13,35 @@ module Actions
       end
 
       def run(event = nil)
-        case event
-        when nil
-          suspend do |suspended_action|
-            history = dispatch_agent_action
-
-            history.host_id = input[:host_id]
-            history.dynflow_execution_plan_id = suspended_action.execution_plan_id
-            history.dynflow_step_id = suspended_action.step_id
-            history.save!
-
-            output[:dispatch_history_id] = history.id
-
-            schedule_timeout(accept_timeout)
-          end
-        when Dynflow::Action::Timeouts::Timeout
-          process_timeout
-          suspend
-        when Dynflow::Action::Skip
-        when 'accepted'
-          output[:accept_time] = Time.now.to_s
-          schedule_timeout(finish_timeout)
-          suspend
-        else
-          fail_on_errors
+        unless event == Dynflow::Action::Skip
+          super
         end
+      end
+
+      def done?
+        dispatch_history&.status&.present?
+      end
+
+      def invoke_external_task
+        history = dispatch_agent_action
+
+        history.host_id = input[:host_id]
+        history.save!
+
+        output[:dispatch_history_id] = history.id
+        schedule_timeout(accept_timeout)
+      end
+
+      def poll_external_task
+        progress = 0.10
+
+        if dispatch_history&.status&.present?
+          progress = 1
+        end
+
+        {
+          progress: progress
+        }
       end
 
       def accept_timeout

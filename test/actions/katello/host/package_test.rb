@@ -55,7 +55,7 @@ module ::Actions::Katello::Host::Package
 
     let(:action_class) { ::Actions::Katello::Host::Package::Update }
 
-    let(:dispatcher_method) { :remove_package }
+    let(:dispatcher_method) { :update_package }
     let(:dispatcher_params) do
       {
         host_id: host.id,

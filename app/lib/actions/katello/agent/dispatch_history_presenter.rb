@@ -8,61 +8,46 @@ module Actions
         end
 
         def humanized_output
-          return unless @status
+          return if @status.empty?
 
-          result = extract_result
-          ret = []
+          result = package_result
 
-          if result
-            if result.is_a?(String)
-              ret << result
-            else
-              ret.concat(result.map { |package| package[:qname] })
-            end
+          if result[:message]
+            result[:message]
+          elsif result[:packages].any?
+            packages = result[:packages].map { |package| package[:qname] }
+            packages.sort.join("\n")
           else
-            ret << humanized_no_package
+            humanized_no_package
           end
-
-          ret.sort.join("\n")
         end
 
         def error_messages
           messages = []
           @status.each_value do |result|
-            if result[:succeeded] && result[:message]
-              messages << result[:message]
+            if !result[:succeeded] && result.dig(:details, :message)
+              messages << result[:details][:message]
             end
           end
           messages
         end
 
-=begin
-        def errors
-          errorz = @status.map do |_type, result|
-            next unless result[:succeeded]
-
-            {
-              message: result[:message],
-              trace: result[:trace]
-
-            }
-          end
-          errorz.compact!
-        end
-=end
-
         private
 
-        def extract_result
+        def package_result
+          result = { packages: [] }
+
           @status.each_value do |v|
-            if v[:succeeded] == true
-              return v[:details][:resolved] + v[:details][:deps]
-            elsif v[:succeeded] == false
-              return v[:message]
+            if v[:succeeded]
+              result[:packages].concat(v[:details][:resolved] + v[:details][:deps])
+              break
+            else
+              result[:message] = v[:details][:message]
+              break
             end
           end
 
-          nil
+          result
         end
 
         def humanized_no_package

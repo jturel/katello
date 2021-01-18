@@ -11,7 +11,14 @@ module Katello
       protected
 
       def units
-        @packages
+        @packages.map do |package|
+          {
+            type_id: @content_type,
+            unit_key: {
+              name: package
+            }
+          }
+        end
       end
     end
   end

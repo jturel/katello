@@ -4,14 +4,12 @@ module Actions
       include Actions::Base::Polling
       include Helpers::Presenter
 
-      # Should these be cancellable like the pulp tasks?
-
       def dispatch_agent_action
         fail NotImplementedError
       end
 
       def agent_action_type
-        fail NotImplementedError
+        nil
       end
 
       def run(event = nil)
@@ -26,18 +24,19 @@ module Actions
             history.save!
 
             output[:dispatch_history_id] = history.id
+
             schedule_timeout(accept_timeout)
           end
         when Dynflow::Action::Timeouts::Timeout
           process_timeout
-        when :accepted
+          suspend
+        when Dynflow::Action::Skip
+        when 'accepted'
+          output[:accept_time] = Time.now.to_s
           schedule_timeout(finish_timeout)
-        when :failed
-          fail_on_errors
-        when :finished
-          Rails.logger.info("\n\n\nRESUMING ACTION????\n\n\n")
+          suspend
         else
-          fail_on_errors # is this needed?
+          fail_on_errors
         end
       end
 
@@ -50,20 +49,20 @@ module Actions
       end
 
       def process_timeout
-        # accept timeout
-        unless dispatch_history.accepted
+        unless output[:accept_time]
           fail _("Host did not respond within %s seconds. The task has been cancelled. Is katello-agent installed and goferd running on the Host?") % accept_timeout
         end
 
-        # finish timeout
-        fail _("Host did not finish content action in %s seconds.  The task has been cancelled.") % finish_timeout
+        if Time.now - DateTime.parse(output[:accept_time]) >= finish_timeout
+          fail _("Host did not finish content action in %s seconds.  The task has been cancelled.") % finish_timeout
+        end
       end
 
-      def fail_on_errors(dispatch_history = self.dispatch_history)
+      def fail_on_errors
         errors = presenter.error_messages
 
         if errors.any?
-          fail task_errors.join("\n")
+          fail errors.join("\n")
         end
       end
 

@@ -19,10 +19,12 @@ module Katello
 
         result = json['result']
 
+=begin
         unless result
           logger.info("not processing this message")
           return
         end
+=end
 
         dispatch_history_id = json.dig('data', 'dispatch_history_id')
 
@@ -40,11 +42,17 @@ module Katello
         if dispatch_history.dynflow_execution_plan_id && dispatch_history.dynflow_step_id
           pending_task = ForemanTasks::Task.find_by(
             external_id: dispatch_history.dynflow_execution_plan_id,
-            result: 'pending'
+            #result: 'pending'
           )
 
           unless pending_task
             logger.warn("not handling event for invalid execution plan #{dispatch_history.dynflow_execution_plan_id}")
+            return
+          end
+
+          if json['status'] == 'accepted'
+            logger.info("sending accepted signal")
+            ForemanTasks.dynflow.world.event(dispatch_history.dynflow_execution_plan_id, dispatch_history.dynflow_step_id, :accepted)
             return
           end
 
@@ -53,11 +61,11 @@ module Katello
           if result_details
             dispatch_history.status = result_details
             dispatch_history.save!
-          end
 
-          # if we can't save, be graceful
-          ForemanTasks.dynflow.world.event(dispatch_history.dynflow_execution_plan_id, dispatch_history.dynflow_step_id, :finished)
-          logger.info("triggered finished event for execution plan #{dispatch_history.dynflow_execution_plan_id}")
+            # if we can't save, be graceful
+            ForemanTasks.dynflow.world.event(dispatch_history.dynflow_execution_plan_id, dispatch_history.dynflow_step_id, :finished)
+            logger.info("triggered finished event for execution plan #{dispatch_history.dynflow_execution_plan_id}")
+          end
         else
           logger.info("nothing to update in dynflow")
         end

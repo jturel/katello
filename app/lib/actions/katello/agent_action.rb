@@ -18,6 +18,10 @@ module Actions
         end
       end
 
+      def on_finish
+        fail_on_errors
+      end
+
       def done?
         dispatch_history&.status&.present?
       end
@@ -33,12 +37,14 @@ module Actions
       end
 
       def poll_external_task
-        progress = 0.10
-
-        if dispatch_history&.status&.present?
-          progress = 1
-        end
-
+        history = dispatch_history
+        progress = if history&.status&.present?
+                     1
+                   elsif history&.accepted_at
+                     0.1
+                   else
+                     0
+                   end
         {
           progress: progress
         }
@@ -53,20 +59,24 @@ module Actions
       end
 
       def process_timeout
-        unless output[:accept_time]
+        history = dispatch_history
+
+        if history&.accepted_at.blank?
           fail _("Host did not respond within %s seconds. The task has been cancelled. Is katello-agent installed and goferd running on the Host?") % accept_timeout
         end
 
-        if Time.now - DateTime.parse(output[:accept_time]) >= finish_timeout
+        if history&.status.blank?
           fail _("Host did not finish content action in %s seconds.  The task has been cancelled.") % finish_timeout
         end
       end
 
       def fail_on_errors
-        errors = presenter.error_messages
+        if output[:dispatch_history_id]
+          errors = presenter.error_messages
 
-        if errors.any?
-          fail errors.join("\n")
+          if errors.any?
+            fail errors.join("\n")
+          end
         end
       end
 

@@ -6,24 +6,19 @@ module Katello
       end
 
       def self.handle(message)
-        logger.info("id: #{message.message_id}, subject: #{message.subject}, content: #{message.content}")
+        logger.debug("client message: #{message.content}")
 
         begin
           json = JSON.parse(message.content)
         rescue
-          logger.error("could not parse message content into json")
-          return
-        end
-
-        result_details = json.dig('result', 'retval', 'details')
-        unless result_details
-          logger.info("not processing this message")
+          logger.error("client message didn't contain valid JSON")
+          logger.error("message content: #{message.content}")
           return
         end
 
         dispatch_history_id = json.dig('data', 'dispatch_history_id')
         unless dispatch_history_id
-          logger.warn("No dispatch history in message. Nothing to do")
+          logger.error("No dispatch history in message. Nothing to do")
           return
         end
 
@@ -33,7 +28,17 @@ module Katello
           return
         end
 
-        dispatch_history.status = result_details
+        if json['status'] == 'accepted'
+          logger.debug("Updating accept time for dispatch_history=#{dispatch_history_id}")
+          dispatch_history.accepted_at = DateTime.now
+        end
+
+        result_details = json.dig('result', 'retval', 'details')
+        if result_details
+          logger.debug("Updating final status for dispatch_history=#{dispatch_history_id}")
+          dispatch_history.status = result_details
+        end
+
         dispatch_history.save!
       end
     end

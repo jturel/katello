@@ -19,6 +19,31 @@ module Actions
           assert_equal host.id, dispatch_history.host_id
         end
 
+        def test_process_timeout_accept
+          action.expects(:dispatch_history).returns(dispatch_history)
+
+          error = assert_raises(StandardError) { action.process_timeout }
+
+          assert_match(/did not respond/, error.message)
+        end
+
+        def test_process_timeout_finish
+          dispatch_history.accepted_at = Time.now
+          action.expects(:dispatch_history).returns(dispatch_history)
+
+          error = assert_raises(StandardError) { action.process_timeout }
+
+          assert_match(/did not finish/, error.message)
+        end
+
+        def test_process_timeout_noop
+          dispatch_history.accepted_at = Time.now
+          dispatch_history.status = { :foo => "bar" }
+          action.expects(:dispatch_history).returns(dispatch_history)
+
+          action.process_timeout
+        end
+
         def test_humanized_output
           Actions::Katello::Agent::DispatchHistoryPresenter.any_instance.expects(:humanized_output)
 

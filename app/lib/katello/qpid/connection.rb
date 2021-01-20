@@ -18,9 +18,8 @@ module Katello
 
       def close
         return unless open?
-        @session&.close
         @connection.close
-        Rails.logger.info("Qpid connection #{self.object_id} closed")
+        Rails.logger.debug("Qpid connection #{self.object_id} closed")
       end
 
       def send_message(address, message)
@@ -34,10 +33,12 @@ module Katello
       end
 
       def send(sender, message)
-        Rails.logger.info("Sending with sender=#{sender.object_id} session=#{sender.session.object_id} connection=#{sender.session.connection.object_id}")
+        Rails.logger.debug("Sending with sender=#{sender.object_id} session=#{sender.session.object_id} connection=#{sender.session.connection.object_id}")
         sender.send(::Qpid::Messaging::Message.new(message))
       end
 
+      # Use a single connection, session, and receiver to fetch messages from a queue
+      # Drains messages from the queue and sleeps for the specified time before repeating
       def receive_messages(address:, sleep_seconds: nil)
         with_connection do |connection|
           session = connection.create_session
@@ -61,20 +62,17 @@ module Katello
       end
 
       def receive(receiver)
-        #Rails.logger.info("Receiving with receiver=#{receiver.object_id} session=#{receiver.session.object_id} connection=#{receiver.session.connection.object_id}")
-        begin
-          message = fetch_message(receiver)
-          while message
-            begin
-              yield(message)
-            ensure
-              ack(message, receiver)
-            end
-            message = fetch_message(receiver)
+        message = fetch_message(receiver)
+        while message
+          begin
+            yield(message)
+          ensure
+            ack(message, receiver)
           end
-        rescue NoMessageAvailable # NoMessageAvailable
-          # this is not an error for us
+          message = fetch_message(receiver)
         end
+      rescue NoMessageAvailable
+        # this is not an error for us
       end
 
       def open?

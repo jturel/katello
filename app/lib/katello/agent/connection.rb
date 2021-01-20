@@ -28,6 +28,10 @@ module Katello
           @agent_connection.close
         end
 
+        def self.agent_connection_open?
+          @agent_connection.open?
+        end
+
         def self.settings
           SETTINGS[:katello][:agent]
         end

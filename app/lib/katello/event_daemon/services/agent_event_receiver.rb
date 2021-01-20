@@ -9,6 +9,10 @@ module Katello
         @failed_count = 0
         @processed_count = 0
 
+        def self.logger
+          ::Foreman::Logging.logger('katello/candlepin_events')
+        end
+
         def self.run
           fail("Katello agent event receiver already started") if running?
 
@@ -21,7 +25,7 @@ module Katello
 
         def self.handle_message(message)
           ::Katello::Util::Support.with_db_connection(logger) do
-              ::Katello::Agent::ClientMessageHandler.handle(message)
+            ::Katello::Agent::ClientMessageHandler.handle(message)
           end
           @processed_count += 1
         rescue => e
@@ -34,6 +38,7 @@ module Katello
         def self.close
           @thread&.kill
           close_connection
+          reset
         end
 
         def self.running?
@@ -48,6 +53,13 @@ module Katello
               running: running?
             }
           end
+        end
+
+        def self.reset
+          @processed_count = 0
+          @failed_count = 0
+          @running = false
+          Rails.cache.delete(STATUS_CACHE_KEY)
         end
       end
     end

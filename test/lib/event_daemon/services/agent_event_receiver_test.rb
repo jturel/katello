@@ -11,7 +11,7 @@ module Katello
         end
 
         def test_close
-          assert AgentEventReceiver.close
+          refute AgentEventReceiver.close
         end
 
         def test_status

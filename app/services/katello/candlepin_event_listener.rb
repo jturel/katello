@@ -5,38 +5,31 @@ module Katello
 
     cattr_accessor :client_factory
 
-    @failed_count = 0
-    @processed_count = 0
-
-    def self.logger
-      ::Foreman::Logging.logger('katello/candlepin_events')
+    def self.blocking
+      false
     end
 
-    def self.running?
-      @client&.running? || false
-    end
-
-    def self.close
-      if @client&.close
-        logger.info("Closed candlepin event listener")
-      end
-      reset
-    end
-
-    def self.reset
-      @processed_count = 0
+    def initialize
+      @client = self.class.client_factory.call
       @failed_count = 0
-      @client = nil
+      @processed_count = 0
     end
 
-    def self.run
-      @client = client_factory.call
+    def run
       @client.subscribe do |message|
         handle_message(message)
       end
     end
 
-    def self.status
+    def running?
+      @client.running?
+    end
+
+    def close
+      @client.close
+    end
+
+    def status
       {
         processed_count: @processed_count,
         failed_count: @failed_count,
@@ -44,10 +37,16 @@ module Katello
       }
     end
 
-    def self.handle_message(message)
-      ::Katello::Util::Support.with_db_connection(logger) do
-        subject = "#{message.headers['EVENT_TARGET']}.#{message.headers['EVENT_TYPE']}".downcase
-        cp_event = Event.new(subject, message.body)
+    private
+
+    def logger
+      ::Foreman::Logging.logger('katello/candlepin_events')
+    end
+
+    def handle_message(message)
+      subject = "#{message.headers['EVENT_TARGET']}.#{message.headers['EVENT_TYPE']}".downcase
+      cp_event = Event.new(subject, message.body)
+      Rails.application.executor.wrap do
         ::Katello::Candlepin::EventHandler.new(logger).handle(cp_event)
       end
       @processed_count += 1

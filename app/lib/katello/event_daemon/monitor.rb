@@ -2,20 +2,41 @@ module Katello
   module EventDaemon
     class Monitor
       def initialize(services)
-        @services = services
+        @service_registry = {}
         @service_statuses = {}
-        @services.keys.each do |service_name|
-          @service_statuses[service_name] = { running: 'starting' }
+        services.each do |name, klass|
+          @service_registry[name] = {
+            class: klass,
+            instance: nil,
+            thread: nil
+          }
+          @service_statuses[name] = {
+            running: 'starting'
+          }
         end
       end
 
       def start
-        write_statuses_to_cache
         loop do
+          break if @stop
+
           Rails.application.executor.wrap do
             check_services
           end
-          sleep 15
+
+          sleep 2
+        end
+      end
+
+      def stop
+        @stop = true
+      end
+
+      def stop_services
+        @service_registry.each do |service_name, service|
+          stop_service(service_name, service)
+        rescue
+          Rails.logger.error("error while closing #{service_name}")
         end
       end
 
@@ -26,24 +47,43 @@ module Katello
         )
       end
 
+      def start_service(service_name, service_class)
+        instance = service_class.new
+        @service_registry[service_name][:instance] = instance
+        if service_class.try(:blocking)
+          @service_registry[service_name][:thread] = Thread.new do
+            instance.run
+          #ensure
+          #  instance.close
+          # test if this is needed and add test
+          end
+        else
+          instance.run
+        end
+        sleep 0.1
+        instance
+      end
+
+      def stop_service(service_name, service)
+        service[:instance]&.close
+        service[:instance] = nil
+        service[:thread]&.join
+        Rails.logger.info("Closed #{service_name}")
+      end
+
+      def service_running?(service_name)
+        @service_statuses.dig(service_name, :running) == true
+      end
+
       def check_services
-        @services.each do |service_name, service_class|
-          @service_statuses[service_name] = service_class.status
+        @service_registry.each do |service_name, service|
+          instance = service[:instance] || start_service(service_name, service[:class])
+          @service_statuses[service_name] = instance.status
         rescue => error
-          Rails.logger.error("Error occurred while pinging #{service_class}")
-          Rails.logger.error(error.message)
-          Rails.logger.error(error.backtrace.join("\n"))
+          Rails.logger.error("Error occurred while pinging #{service_name}: #{error.message}")
         ensure
-          if error || !@service_statuses.dig(service_name, :running)
-            begin
-              service_class.close
-              service_class.run
-              @service_statuses[service_name] = service_class.status
-            rescue => error
-              Rails.logger.error("Error occurred while starting #{service_class}")
-              Rails.logger.error(error.message)
-              Rails.logger.error(error.backtrace.join("\n"))
-            end
+          if !service_running?(service_name)
+            stop_service(service_name, service)
           end
         end
         write_statuses_to_cache

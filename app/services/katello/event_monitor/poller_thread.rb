@@ -2,44 +2,33 @@ module Katello
   module EventMonitor
     # TODO: Move this class to app/lib/katello/event_daemon/services with other service definitions
     class PollerThread
-      SLEEP_INTERVAL = 3
+      SLEEP_INTERVAL = 2
 
-      cattr_accessor :instance
-
-      def self.initialize(logger = nil)
-        self.instance ||= self.new(logger)
+      def self.blocking
+        true
       end
 
-      def self.close
-        if self.instance
-          self.instance.close
-          self.instance = nil
-        end
-      end
-
-      def self.run
-        initialize
-        ::Katello::EventQueue.reset_in_progress
-        instance.poll_for_events
-      end
-
-      def self.status
-        instance&.status
-      end
-
-      def initialize(logger = nil)
-        @logger = logger || ::Foreman::Logging.logger('katello/katello_events')
+      def initialize
         @failed_count = 0
         @processed_count = 0
       end
 
-      def close
-        @logger.info("Stopping Katello Event Monitor")
-        @thread&.kill
+      def run
+        @running = true
+        Rails.application.executor.wrap do
+          ::Katello::EventQueue.reset_in_progress
+          poll_for_events
+        end
+      ensure
+        @running = false
       end
 
       def running?
-        @thread&.status || false
+        @running == true
+      end
+
+      def close
+        @close = true
       end
 
       def status
@@ -50,8 +39,14 @@ module Katello
         }
       end
 
+      private
+
+      def logger
+        ::Foreman::Logging.logger('katello/katello_events')
+      end
+
       def run_event(event)
-        @logger.debug("event_queue_event: type=#{event.event_type}, object_id=#{event.object_id}")
+        logger.debug("event_queue_event: type=#{event.event_type}, object_id=#{event.object_id}")
 
         event_instance = nil
         begin
@@ -59,18 +54,19 @@ module Katello
             event_instance = ::Katello::EventQueue.create_instance(event)
             event_instance.run
           end
+          @processed_count += 1
         rescue => e
           @failed_count += 1
-          @logger.error("event_queue_error: type=#{event.event_type}, object_id=#{event.object_id}")
-          @logger.error(e.message)
-          @logger.error(e.backtrace.join("\n"))
+          logger.error("event_queue_error: type=#{event.event_type}, object_id=#{event.object_id}")
+          logger.error(e.message)
+          logger.error(e.backtrace.join("\n"))
         ensure
           if event_instance.try(:retry)
             result = ::Katello::EventQueue.reschedule_event(event)
             if result == :expired
-              @logger.warn("event_queue_event_expired: type=#{event.event_type} object_id=#{event.object_id}")
+              logger.warn("event_queue_event_expired: type=#{event.event_type} object_id=#{event.object_id}")
             elsif !result.nil?
-              @logger.warn("event_queue_rescheduled: type=#{event.event_type} object_id=#{event.object_id}")
+              logger.warn("event_queue_rescheduled: type=#{event.event_type} object_id=#{event.object_id}")
             end
           end
           ::Katello::EventQueue.clear_events(event.event_type, event.object_id, event.created_at)
@@ -78,25 +74,16 @@ module Katello
       end
 
       def poll_for_events
-        @thread = Thread.new do
-          @logger.info("Polling Katello Event Queue")
-          loop do
-            Rails.application.executor.wrap do
-              Katello::Util::Support.with_db_connection(@logger) do
-                until (event = ::Katello::EventQueue.next_event).nil?
-                  run_event(event)
-                  @processed_count += 1
-                end
-              end
-            end
+        loop do
+          break if @close
 
-            sleep SLEEP_INTERVAL
+          until (event = ::Katello::EventQueue.next_event).nil?
+            run_event(event)
           end
-        rescue => e
-          @logger.error(e.message)
-          @logger.error("Fatal error in Katello Event Monitor")
-          self.class.close
+          sleep SLEEP_INTERVAL
         end
+      rescue => e
+        logger.error("Fatal error in Katello Event Monitor: #{e.message}")
       end
     end
   end

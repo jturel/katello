@@ -13,9 +13,6 @@ module Katello
         Katello::PreventJsonParsing,
         ->(env) { env['PATH_INFO'] =~ /consumers/ && env['PATH_INFO'] =~ /profile|packages/ }
       )
-
-      require 'katello/middleware/event_daemon'
-      app.middleware.use(Katello::Middleware::EventDaemon)
     end
 
     initializer 'katello.mount_engine', :before => :sooner_routes_load, :after => :build_middleware_stack do |app|

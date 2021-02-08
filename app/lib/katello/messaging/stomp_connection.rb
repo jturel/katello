@@ -45,12 +45,10 @@ module Katello
           yield(received_message)
           client.ack(message)
         end
-
-        Rails.logger.info("Subscribed to #{queue_name}.#{subscription_name}")
       end
 
       def running?
-        @client&.running && @client&.open?
+        @client&.running && @client&.open? || false
       end
 
       def open?

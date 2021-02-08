@@ -3,41 +3,41 @@ require 'katello_test_helper'
 module Katello
   module EventDaemon
     class RunnerTest < ActiveSupport::TestCase
-      class MockService
-        def self.run
-        end
-
-        def self.close
-        end
-
-        def self.status(*)
-          {
-            running: true
-          }
-        end
+      def setup
+#        Katello::EventDaemon::Runner.instance_variable_set("@services", {})
+#        Katello::EventDaemon::Runner.register_service(:mock_service, MockService)
+#        Katello::EventDaemon::Runner.stubs(:runnable?).returns(true)
+#        Katello::EventDaemon::Runner.stubs(:pid_file).returns(Rails.root.join('tmp', 'test_katello_daemon.pid'))
+        @lockfile = Rails.root.join('tmp', 'test_katello_daemon.pid')
+        File.unlink(@lockfile) if File.exist?(@lockfile)
+        Katello::EventDaemon::Runner.stubs(:pid_file).returns(@lockfile)
       end
 
-      def setup
-        Katello::EventDaemon::Runner.instance_variable_set("@services", {})
-        Katello::EventDaemon::Runner.register_service(:mock_service, MockService)
-        Katello::EventDaemon::Runner.stubs(:runnable?).returns(true)
-        Katello::EventDaemon::Runner.stubs(:pid_file).returns(Rails.root.join('tmp', 'test_katello_daemon.pid'))
+      def test_register_service
+        assert Katello::EventDaemon::Runner.register_service(:mock_service, Object)
+      end
 
+      def test_start_stop
+        monitor = mock('monitor', start: true, stop: true, stop_services: true)
+        Katello::EventDaemon::Monitor.expects(:new).returns(monitor)
+
+        Katello::EventDaemon::Runner.start
+        assert Katello::EventDaemon::Runner.started?
+
+        Katello::EventDaemon::Runner.stop
+        refute File.exist?(@lockfile)
         refute Katello::EventDaemon::Runner.started?
       end
 
-      def test_start
-        Katello::EventDaemon::Runner.start
+      def test_start_monitor
+        monitor = mock('monitor')
+        monitor.expects(:start).raises(StandardError)
+        Katello::EventDaemon::Monitor.expects(:new).returns(monitor)
+        Katello::EventDaemon::Runner.expects(:stop).twice
+        Katello::EventDaemon::Runner.expects(:start)
 
-        assert Katello::EventDaemon::Runner.started?
-        Katello::EventDaemon::Runner.stop
-      end
-
-      def test_stop_close_services
-        Katello::EventDaemon::Runner.start
-
-        MockService.expects(:close)
-
+        Katello::EventDaemon::Runner.start_monitor
+      ensure
         Katello::EventDaemon::Runner.stop
       end
 

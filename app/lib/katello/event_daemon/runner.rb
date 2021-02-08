@@ -3,7 +3,6 @@ module Katello
     class Runner
       STATUS_CACHE_KEY = "katello_event_daemon_status".freeze
       @services = {}
-      @cache = ActiveSupport::Cache::MemoryStore.new
 
       class << self
         def initialize
@@ -41,26 +40,25 @@ module Katello
 
         def stop
           return unless pid == Process.pid
-          @monitor_thread.kill
-          @cache.clear
-          @services.values.each(&:close)
+          @monitor&.stop
+          @monitor&.stop_services
+          @monitor_thread&.join if Thread.current != @monitor_thread
           File.unlink(pid_file) if pid_file && File.exist?(pid_file)
         end
 
         def start
-          return unless runnable?
-          lockfile = File.open(lock_file, 'r')
-          begin
+          File.open(lock_file, 'r') do |lockfile|
             lockfile.flock(File::LOCK_EX)
-            return if started? # ensure it wasn't started while we waited for the lock
-            start_monitor_thread
-            write_pid_file
+            unless started? # may have been started in another process while we waited for the lock
+              start_monitor_thread
+              write_pid_file
 
-            at_exit do
-              stop
+              at_exit do
+                stop
+              end
+
+              Rails.logger.info("Katello event daemon started process=#{Process.pid}")
             end
-
-            Rails.logger.info("Katello event daemon started process=#{Process.pid}")
           ensure
             lockfile.flock(File::LOCK_UN)
           end
@@ -69,20 +67,23 @@ module Katello
         def started?
           Process.kill(0, pid)
           true
-        rescue Errno::ESRCH, TypeError # process no longer exists or we had no PID cached
+        rescue Errno::ESRCH, TypeError # process no longer exists
           false
+        end
+
+        def start_monitor
+          @monitor = Katello::EventDaemon::Monitor.new(@services)
+          @monitor.start
+        rescue => e
+          Rails.logger.error("Error in monitor thread. Stopping daemon!")
+          Rails.logger.error(e.message)
+          self.stop
+          self.start
         end
 
         def start_monitor_thread
           @monitor_thread = Thread.new do
-            Katello::EventDaemon::Monitor.new(@services).start
-          end
-        end
-
-        def runnable?
-          # avoid accessing the disk on each request
-          @cache.fetch('katello_event_daemon_runnable', expires_in: 1.minute) do
-            !started? && settings[:enabled] && !::Foreman.in_rake? && !Rails.env.test?
+            start_monitor
           end
         end
 
@@ -90,7 +91,7 @@ module Katello
           @services[name] = klass
         end
 
-        def service_status(service_name = nil)
+        def service_status(service_name)
           Rails.cache.read(STATUS_CACHE_KEY)&.dig(service_name)
         end
       end

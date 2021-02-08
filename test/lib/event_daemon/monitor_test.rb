@@ -5,77 +5,30 @@ module Katello
   module EventDaemon
     class MonitorTest < ActiveSupport::TestCase
       class MockService
-        def self.run
-        end
-
-        def self.close
-        end
-
-        def self.status(*)
-          {
-            running: true
-          }
-        end
       end
 
-      def test_monitor_running
-        monitor = Katello::EventDaemon::Monitor.new(mock_service: MockService)
-
-        MockService.expects(:run).never
-
-        monitor.check_services
-      end
-
-      def test_cache_written
-        monitor = Katello::EventDaemon::Monitor.new(mock_service: MockService)
-
-        Rails.cache.expects(:write).once
-
-        monitor.check_services
-      end
-
-      def test_monitor_not_running
-        monitor = Katello::EventDaemon::Monitor.new(mock_service: MockService)
-        MockService.stubs(:status).returns(running: false)
-
-        MockService.expects(:run)
-
-        monitor.check_services
-      end
-
-      def test_monitor_starting
-        Rails.cache.expects(:write).with(
-          "katello_event_daemon_status",
-          { mock_service: { running: 'starting' } }
-        )
-        monitor = Katello::EventDaemon::Monitor.new(mock_service: MockService)
-        monitor.stubs(:check_services).raises(StandardError) # prevent infinite loop by raising error
-        assert_raises(StandardError) { monitor.start }
-      end
-
-      def test_check_services_overwrites_initial_status
-        monitor = Katello::EventDaemon::Monitor.new(mock_service: MockService)
-        mock_status = {
-          running: true,
+      def setup
+        @monitor = Katello::EventDaemon::Monitor.new(mock_service: MockService)
+        @mock_status = {
           processed_count: 1,
-          failed_count: 0
+          failed_count: 0,
+          running: true
         }
-        MockService.stubs(:status).returns(mock_status)
-        Rails.cache.expects(:write).with(
-          "katello_event_daemon_status",
-          { mock_service: mock_status }
-        )
-
-        monitor.check_services
       end
 
-      def test_monitor_no_status
-        monitor = Katello::EventDaemon::Monitor.new(mock_service: MockService)
-        MockService.stubs(:status).returns(nil)
+      def test_check_services
+        service = stub(run: true, status: @mock_status)
+        MockService.expects(:new).once.returns(service)
+        service.expects(:run).once
+        Rails.cache.expects(:write).twice.with("katello_event_daemon_status", mock_service: @mock_status)
+        @monitor.check_services
+        @monitor.check_services
+      end
 
-        MockService.expects(:run)
-
-        monitor.check_services
+      def test_start_with_stop
+        @monitor.stop
+        @monitor.expects(:check_services).never
+        @monitor.start
       end
     end
   end

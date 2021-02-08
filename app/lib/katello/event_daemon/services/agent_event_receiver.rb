@@ -2,8 +2,6 @@ module Katello
   module EventDaemon
     module Services
       class AgentEventReceiver
-        STATUS_CACHE_KEY = 'katello_agent_events'.freeze
-
         class Handler
           attr_accessor :processed, :failed
 
@@ -13,7 +11,7 @@ module Katello
           end
 
           def handle(message)
-            ::Katello::Util::Support.with_db_connection do
+            Rails.application.executor.wrap do
               ::Katello::Agent::ClientMessageHandler.new(message).handle
               @processed += 1
             rescue => e
@@ -25,37 +23,39 @@ module Katello
           end
         end
 
-        def self.logger
+        def self.blocking
+          true
+        end
+
+        def initialize
+          @handler = Handler.new
+          @connection = ::Katello::Agent::Connection.new
+        end
+
+        def run
+          @connection.fetch_agent_messages(@handler)
+        end
+
+        def running?
+          @connection.open?
+        end
+
+        def close
+          @connection.close
+        end
+
+        def status
+          {
+            processed_count: @handler.processed,
+            failed_count: @handler.failed,
+            running: running?
+          }
+        end
+
+        private
+
+        def logger
           ::Foreman::Logging.logger('katello/agent')
-        end
-
-        def self.run
-          fail("Katello agent event receiver already started") if running?
-
-          @thread = Thread.new do
-            @handler = Handler.new
-            @agent_connection = ::Katello::Agent::Connection.new
-            @agent_connection.fetch_agent_messages(@handler)
-          end
-        end
-
-        def self.close
-          @agent_connection&.close
-          @thread&.join
-        end
-
-        def self.running?
-          @agent_connection&.open? && @thread&.status.present?
-        end
-
-        def self.status(refresh: true)
-          Rails.cache.fetch(STATUS_CACHE_KEY, force: refresh) do
-            {
-              running: running?,
-              processed_count: @handler&.processed || 0,
-              failed_count: @handler&.failed || 0
-            }
-          end
         end
       end
     end

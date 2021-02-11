@@ -22,6 +22,7 @@ module Katello
 
           Rails.application.executor.wrap do
             check_services
+            write_statuses_to_cache
           end
 
           sleep 2
@@ -82,11 +83,8 @@ module Katello
         rescue => error
           Rails.logger.error("Error occurred while pinging #{service_name}: #{error.message}")
         ensure
-          if !service_running?(service_name)
-            stop_service(service_name, service)
-          end
+          stop_service(service_name, service) unless service_running?(service_name)
         end
-        write_statuses_to_cache
       end
     end
   end

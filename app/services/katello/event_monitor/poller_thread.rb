@@ -15,6 +15,8 @@ module Katello
 
       def run
         @running = true
+        # since polling queries the the db on each tick
+        # keep a connection checked out
         Rails.application.executor.wrap do
           ::Katello::EventQueue.reset_in_progress
           poll_for_events

@@ -10,9 +10,6 @@ module Katello
             instance: nil,
             thread: nil
           }
-          @service_statuses[name] = {
-            running: 'starting'
-          }
         end
       end
 
@@ -62,12 +59,13 @@ module Katello
         else
           instance.run
         end
-        sleep 0.1
+        sleep 0.1 # give time for service to start so first cache will show running state
         instance
       end
 
       def stop_service(service_name, service)
         service[:instance]&.close
+        # add a comment here if we really need to do this
         service[:instance] = nil
         service[:thread]&.join
         Rails.logger.info("Closed #{service_name}")
@@ -84,6 +82,7 @@ module Katello
         rescue => error
           Rails.logger.error("Error occurred while pinging #{service_name}: #{error.message}")
         ensure
+          # checks error here because updating status may have failed and cache is now inaccurate
           stop_service(service_name, service) unless error || service_running?(service_name)
         end
       end

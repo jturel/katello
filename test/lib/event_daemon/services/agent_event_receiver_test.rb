@@ -4,18 +4,22 @@ module Katello
   module EventDaemon
     module Services
       class AgentEventReceiverTest < ActiveSupport::TestCase
-        def test_run
-          Thread.expects(:new)
+        let(:receiver) { Katello::EventDaemon::Services::AgentEventReceiver.new }
 
-          AgentEventReceiver.run
+        def test_run
+          connection = mock(fetch_agent_messages: true)
+          Katello::Agent::Connection.expects(:new).returns(connection)
+          receiver.run
         end
 
         def test_close
-          AgentEventReceiver.close
+          connection = mock(close: true)
+          Katello::Agent::Connection.expects(:new).returns(connection)
+          receiver.close
         end
 
         def test_status
-          AgentEventReceiver.status
+          receiver.status
         end
       end
     end

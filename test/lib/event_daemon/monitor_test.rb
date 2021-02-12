@@ -16,13 +16,16 @@ module Katello
         }
       end
 
-      def test_check_services
+      def test_check_services_running
         service = stub(run: true, status: @mock_status)
         MockService.expects(:new).once.returns(service)
         service.expects(:run).once
-        Rails.cache.expects(:write).twice.with("katello_event_daemon_status", mock_service: @mock_status)
         @monitor.check_services
         @monitor.check_services
+      end
+
+      def test_stop_services
+
       end
 
       def test_start_with_stop

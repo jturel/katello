@@ -44,7 +44,8 @@ module Katello
       def write_statuses_to_cache
         Rails.cache.write(
           Katello::EventDaemon::Runner::STATUS_CACHE_KEY,
-          @service_statuses
+          @service_statuses,
+          expires_in: 1.minute
         )
       end
 
@@ -83,7 +84,7 @@ module Katello
         rescue => error
           Rails.logger.error("Error occurred while pinging #{service_name}: #{error.message}")
         ensure
-          stop_service(service_name, service) unless service_running?(service_name)
+          stop_service(service_name, service) unless error || service_running?(service_name)
         end
       end
     end

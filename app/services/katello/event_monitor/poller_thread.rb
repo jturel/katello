@@ -39,12 +39,6 @@ module Katello
         }
       end
 
-      private
-
-      def logger
-        ::Foreman::Logging.logger('katello/katello_events')
-      end
-
       def run_event(event)
         logger.debug("event_queue_event: type=#{event.event_type}, object_id=#{event.object_id}")
 
@@ -71,6 +65,12 @@ module Katello
           end
           ::Katello::EventQueue.clear_events(event.event_type, event.object_id, event.created_at)
         end
+      end
+
+      private
+
+      def logger
+        ::Foreman::Logging.logger('katello/katello_events')
       end
 
       def poll_for_events

@@ -37,12 +37,6 @@ module Katello
       }
     end
 
-    private
-
-    def logger
-      ::Foreman::Logging.logger('katello/candlepin_events')
-    end
-
     def handle_message(message)
       subject = "#{message.headers['EVENT_TARGET']}.#{message.headers['EVENT_TYPE']}".downcase
       cp_event = Event.new(subject, message.body)
@@ -55,6 +49,12 @@ module Katello
       logger.error("Error handling Candlepin event")
       logger.error(e.message)
       logger.error(e.backtrace.join("\n"))
+    end
+
+    private
+
+    def logger
+      ::Foreman::Logging.logger('katello/candlepin_events')
     end
   end
 end

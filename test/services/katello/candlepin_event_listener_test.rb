@@ -2,24 +2,35 @@ require 'katello_test_helper'
 
 module Katello
   class CandlepinEventListenerTest < ActiveSupport::TestCase
-    def test_run_close
-      client = mock('client', close: true, subscribe: true)
-      Katello::CandlepinEventListener.stubs(:client_factory).returns(proc { client })
+    let(:listener) { Katello::CandlepinEventListener.new }
 
-      Katello::CandlepinEventListener.run
-
-      Katello::CandlepinEventListener.close
-    end
-
-    def test_status
-      status = {
+    def setup
+      @status = {
         processed_count: 0,
         failed_count: 0,
         running: false
       }
-      Katello::CandlepinEventListener.reset
+    end
 
-      assert_equal status, Katello::CandlepinEventListener.status
+    def test_run_close
+      client = mock('client', close: true, subscribe: true)
+      Katello::CandlepinEventListener.expects(:client_factory).returns(proc { client })
+
+      listener.run
+
+      listener.close
+    end
+
+    def test_status
+      assert_equal @status, listener.status
+    end
+
+    def test_status_running
+      client = mock('client', subscribe: true, running?: true)
+      Katello::CandlepinEventListener.expects(:client_factory).returns(proc { client })
+
+      listener.run
+      assert true, listener.status[:running]
     end
 
     def test_handle_message
@@ -28,7 +39,7 @@ module Katello
       Katello::CandlepinEventListener::Event.expects(:new).with('consumer.updated', 'the body')
       Candlepin::EventHandler.any_instance.expects(:handle)
 
-      Katello::CandlepinEventListener.handle_message(message)
+      listener.handle_message(message)
     end
   end
 end

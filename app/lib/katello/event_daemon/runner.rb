@@ -50,8 +50,8 @@ module Katello
           File.open(lock_file, 'r') do |lockfile|
             lockfile.flock(File::LOCK_EX)
             unless started? # may have been started in another process while we waited for the lock
-              start_monitor_thread
               write_pid_file
+              start_monitor_thread
 
               at_exit do
                 stop

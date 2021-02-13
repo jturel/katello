@@ -19,25 +19,45 @@ module Katello
       end
 
       def test_check_services_running
-        service = stub(run: true, status: @mock_status)
+        service = mock(run: true)
+        service.expects(:status).twice.returns(@mock_status)
         service_class.expects(:new).once.returns(service)
-        service.expects(:run).once
-        Thread.expects(:new).never
         monitor.check_services
         monitor.check_services
       end
 
       def test_check_services_blocking_service
-        service = stub(run: true, status: @mock_status)
+        service = mock(run: true)
+        service.expects(:status).twice.returns(@mock_status)
         service_class.expects(:new).once.returns(service)
         service_class.expects(:blocking).returns(true)
-        Thread.expects(:new).once
+        service.expects(:run).never # this happens in a thread
         monitor.check_services
         monitor.check_services
       end
 
-      def test_stop_services
+      def test_check_services_no_raise_error
+        service = mock(close: true)
+        service_class.expects(:new).once.returns(service)
+        service.expects(:run).raises(StandardError)
+        monitor.check_services
+      end
 
+      def test_stop_services
+        service = mock(run: true, status: @mock_status, close: true)
+        service_class.expects(:new).once.returns(service)
+        monitor.check_services
+
+        monitor.stop_services
+      end
+
+      def test_stop_services_no_raise_error
+        service = mock(run: true, status: @mock_status)
+        service.expects(:close).raises(StandardError)
+        service_class.expects(:new).once.returns(service)
+        monitor.check_services
+
+        monitor.stop_services
       end
 
       def test_start_with_stop

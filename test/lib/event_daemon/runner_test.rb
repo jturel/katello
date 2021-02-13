@@ -4,24 +4,26 @@ module Katello
   module EventDaemon
     class RunnerTest < ActiveSupport::TestCase
       def setup
-#        Katello::EventDaemon::Runner.instance_variable_set("@services", {})
-#        Katello::EventDaemon::Runner.register_service(:mock_service, MockService)
-#        Katello::EventDaemon::Runner.stubs(:runnable?).returns(true)
-#        Katello::EventDaemon::Runner.stubs(:pid_file).returns(Rails.root.join('tmp', 'test_katello_daemon.pid'))
-        @lockfile = Rails.root.join('tmp', 'test_katello_daemon.pid')
-        File.unlink(@lockfile) if File.exist?(@lockfile)
+        @lockfile = Rails.root.join('tmp', "test_katello_daemon_#{SecureRandom.uuid}.pid")
         Katello::EventDaemon::Runner.stubs(:pid_file).returns(@lockfile)
+      end
+
+      def teardown
+        File.unlink(@lockfile) if File.exist?(@lockfile)
       end
 
       def test_register_service
         assert Katello::EventDaemon::Runner.register_service(:mock_service, Object)
       end
 
+      #Katello::EventDaemon::RunnerTest#test_start_stop [/home/vagrant/katello/app/lib/katello/event_daemon/runner.rb:43]:
+      #unexpected invocation: #<Mock:monitor>.stop()
       def test_start_stop
-        monitor = mock('monitor', start: true, stop: true, stop_services: true)
+        monitor = mock('start_stop_monitor', start: true, stop: true, stop_services: true)
         Katello::EventDaemon::Monitor.expects(:new).returns(monitor)
 
         Katello::EventDaemon::Runner.start
+        sleep 0.1
         assert Katello::EventDaemon::Runner.started?
 
         Katello::EventDaemon::Runner.stop
@@ -29,8 +31,8 @@ module Katello
         refute Katello::EventDaemon::Runner.started?
       end
 
-      def test_start_monitor
-        monitor = mock('monitor')
+      def test_start_monitor_error
+        monitor = mock('start_monitor_monitor')
         monitor.expects(:start).raises(StandardError)
         Katello::EventDaemon::Monitor.expects(:new).returns(monitor)
         Katello::EventDaemon::Runner.expects(:stop).twice

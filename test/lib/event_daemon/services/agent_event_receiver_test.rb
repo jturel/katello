@@ -6,6 +6,14 @@ module Katello
       class AgentEventReceiverTest < ActiveSupport::TestCase
         let(:receiver) { Katello::EventDaemon::Services::AgentEventReceiver.new }
 
+        def setup
+          @mock_status = {
+            processed_count: 0,
+            failed_count: 0,
+            running: false
+          }
+        end
+
         def test_run
           connection = mock(fetch_agent_messages: true)
           Katello::Agent::Connection.expects(:new).returns(connection)
@@ -19,7 +27,7 @@ module Katello
         end
 
         def test_status
-          receiver.status
+          assert_equal @mock_status, receiver.status
         end
       end
     end

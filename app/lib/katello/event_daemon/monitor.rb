@@ -52,13 +52,11 @@ module Katello
         if service_class.try(:blocking)
           @service_registry[service_name][:thread] = Thread.new do
             instance.run
-          #ensure
-          #  instance.close
-          # test if this is needed and add test
           end
         else
           instance.run
         end
+        Rails.logger.info("Started #{service_name}")
         sleep 0.1 # give time for service to start so first cache will show running state
         instance
       end
@@ -80,10 +78,12 @@ module Katello
           instance = service[:instance] || start_service(service_name, service[:class])
           @service_statuses[service_name] = instance.status
         rescue => error
-          Rails.logger.error("Error occurred while pinging #{service_name}: #{error.message}")
+          Rails.logger.error("Error occurred pinging #{service_name}: #{error.message}")
+          Rails.logger.error(error.backtrace.join("\n"))
         ensure
           # checks error here because updating status may have failed and cache is now inaccurate
-          stop_service(service_name, service) unless error || service_running?(service_name)
+          # should this rescue errors?
+          stop_service(service_name, service) if error || !service_running?(service_name)
         end
       end
     end

@@ -3,7 +3,7 @@ require 'katello_test_helper'
 module Katello
   module EventMonitor
     class PollerThreadTest < ActiveSupport::TestCase
-      let(:poller) { Katello::EventMonitor::PollerThread.new }
+      let(:poller) { Katello::EventMonitor::PollerThread.new(sleep_seconds: 0.1) }
 
       def test_run
         poller.expects(:poll_for_events)
@@ -31,12 +31,12 @@ module Katello
         thread = Thread.new do
           poller.run
         end
-        sleep Katello::EventMonitor::PollerThread::SLEEP_INTERVAL + 0.1
+        sleep 0.5
 
         assert poller.status[:running]
 
         poller.close
-        sleep Katello::EventMonitor::PollerThread::SLEEP_INTERVAL + 0.1
+        sleep 0.3
         refute poller.status[:running]
         refute thread.status
       end

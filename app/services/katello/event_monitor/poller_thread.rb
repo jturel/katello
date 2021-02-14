@@ -2,15 +2,14 @@ module Katello
   module EventMonitor
     # TODO: Move this class to app/lib/katello/event_daemon/services with other service definitions
     class PollerThread
-      SLEEP_INTERVAL = 2
-
       def self.blocking
         true
       end
 
-      def initialize
+      def initialize(sleep_seconds: 2)
         @failed_count = 0
         @processed_count = 0
+        @sleep_seconds = sleep_seconds
       end
 
       def run
@@ -82,7 +81,7 @@ module Katello
           until (event = ::Katello::EventQueue.next_event).nil?
             run_event(event)
           end
-          sleep SLEEP_INTERVAL
+          sleep @sleep_seconds
         end
       rescue => e
         logger.error("Fatal error in Katello Event Monitor: #{e.message}")

@@ -24,6 +24,7 @@ module Katello
 
         Katello::EventDaemon::Runner.start
         sleep 0.1
+        assert File.exist?(@lockfile)
         assert Katello::EventDaemon::Runner.started?
 
         Katello::EventDaemon::Runner.stop
@@ -35,12 +36,10 @@ module Katello
         monitor = mock('start_monitor_monitor')
         monitor.expects(:start).raises(StandardError)
         Katello::EventDaemon::Monitor.expects(:new).returns(monitor)
-        Katello::EventDaemon::Runner.expects(:stop).twice
+        Katello::EventDaemon::Runner.expects(:stop)
         Katello::EventDaemon::Runner.expects(:start)
 
         Katello::EventDaemon::Runner.start_monitor
-      ensure
-        Katello::EventDaemon::Runner.stop
       end
 
       def test_service_status

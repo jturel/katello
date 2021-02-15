@@ -58,6 +58,7 @@ module Katello
       def close
         if open?
           @client.close
+          @client.join
         end
       end
 

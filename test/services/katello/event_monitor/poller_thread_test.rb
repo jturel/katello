@@ -36,7 +36,7 @@ module Katello
         assert poller.status[:running]
 
         poller.close
-        sleep 0.3
+        sleep 0.5
         refute poller.status[:running]
         refute thread.status
       end

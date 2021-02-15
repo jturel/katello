@@ -33,8 +33,9 @@ module Katello
       def stop_services
         @service_registry.each do |service_name, service|
           stop_service(service_name, service)
-        rescue
-          Rails.logger.error("error while closing #{service_name}")
+        rescue => e
+          Rails.logger.error("error while closing #{service_name}: #{e.message}")
+          Rails.logger.error(e.backtrace.join("\n"))
         end
       end
 

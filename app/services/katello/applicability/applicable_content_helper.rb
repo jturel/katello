@@ -13,8 +13,11 @@ module Katello
         if self.bound_library_instance_repos.any?
           to_add, to_remove = applicable_differences
           ActiveRecord::Base.transaction do
-            insert(to_add) unless to_add.blank?
-            remove(to_remove) unless to_remove.blank?
+            inserted = insert(to_add) unless to_add.blank?
+            removed = remove(to_remove) unless to_remove.blank?
+
+            STDOUT.puts("Result of inserted records: #{inserted.inspect}")
+            STDOUT.puts("Result of removed records: #{removed.inspect}")
           end
           [to_add, to_remove]
         end
@@ -136,6 +139,7 @@ module Katello
         unless applicable_ids.empty?
           inserts = applicable_ids.map { |applicable_id| "(#{applicable_id.to_i}, #{content_facet.id.to_i})" }
           sql = "INSERT INTO #{content_facet_association_class.table_name} (#{content_unit_association_id}, content_facet_id) VALUES #{inserts.join(', ')}"
+          STDOUT.puts("Generated SQL for insertion: #{sql}")
           ActiveRecord::Base.connection.execute(sql)
         end
       end

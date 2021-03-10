@@ -3,8 +3,6 @@ module Katello
   module Service
     module Applicability
       class ApplicableContentHelperTest < ActiveSupport::TestCase
-        FIXTURES_FILE = File.join(Katello::Engine.root, "test", "fixtures", "pulp", "rpms.yml")
-
         def trigger_evrs(packages)
           packages.each do |package|
             epoch = package.epoch
@@ -92,8 +90,16 @@ module Katello
         end
 
         def test_applicable_differences_adds_and_removes_no_rpm_ids
-          ::Katello::Applicability::ApplicableContentHelper.new(@host.content_facet, ::Katello::Rpm, bound_repos(@host)).calculate_and_import
-          rpm_differences = ::Katello::Applicability::ApplicableContentHelper.new(@host.content_facet, ::Katello::Rpm, bound_repos(@host)).applicable_differences
+          bound_host_repos = bound_repos(@host)
+          refute_empty bound_host_repos
+
+          helper_one = ::Katello::Applicability::ApplicableContentHelper.new(@host.content_facet, ::Katello::Rpm, bound_host_repos)
+          assert_equal [[@rpm_one_v2.id], []], helper_one.calculate_and_import
+
+          bound_host_repos_two = bound_repos(@host)
+          assert_equal bound_host_repos, bound_host_repos_two
+
+          rpm_differences = ::Katello::Applicability::ApplicableContentHelper.new(@host.content_facet, ::Katello::Rpm, bound_host_repos).applicable_differences
           assert_equal [[], []], rpm_differences
         end
 

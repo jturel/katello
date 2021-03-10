@@ -16,6 +16,7 @@ module Katello
             insert(to_add) unless to_add.blank?
             remove(to_remove) unless to_remove.blank?
           end
+          [to_add, to_remove]
         end
       end
 

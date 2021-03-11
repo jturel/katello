@@ -90,6 +90,8 @@ module Katello
         end
 
         def test_applicable_differences_adds_and_removes_no_rpm_ids
+          logger = ActiveRecord::Base.logger
+          ActiveRecord::Base.logger = Logger.new(STDOUT)
           bound_host_repos = bound_repos(@host)
           refute_empty bound_host_repos
 
@@ -101,6 +103,8 @@ module Katello
 
           rpm_differences = ::Katello::Applicability::ApplicableContentHelper.new(@host.content_facet, ::Katello::Rpm, bound_host_repos).applicable_differences
           assert_equal [[], []], rpm_differences
+        ensure
+          ActiveRecord::Base.logger = logger
         end
 
         def test_applicable_differences_removes_rpm_id

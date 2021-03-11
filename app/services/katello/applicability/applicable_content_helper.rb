@@ -126,7 +126,7 @@ module Katello
       end
 
       def applicable_differences
-        consumer_ids = content_facet.send(applicable_units).pluck("#{content_unit_class.table_name}.id")
+        consumer_ids = content_facet.reload.send(applicable_units).pluck("#{content_unit_class.table_name}.id")
         STDOUT.puts("applicable_differences consumer_ids sql: #{consumer_ids}")
         content_ids = fetch_content_ids
         STDOUT.puts("applicable_differences content_ids: #{content_ids}")

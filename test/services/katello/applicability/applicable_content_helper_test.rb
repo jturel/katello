@@ -101,6 +101,8 @@ module Katello
           bound_host_repos_two = bound_repos(@host)
           assert_equal bound_host_repos, bound_host_repos_two
 
+          STDOUT.puts "STARTING APPLICABLE DIFF CALCS"
+
           rpm_differences = ::Katello::Applicability::ApplicableContentHelper.new(@host.content_facet, ::Katello::Rpm, bound_host_repos).applicable_differences
           assert_equal [[], []], rpm_differences
         ensure

@@ -16,8 +16,8 @@ module Katello
             inserted = insert(to_add) unless to_add.blank?
             removed = remove(to_remove) unless to_remove.blank?
 
-            #STDOUT.puts("Result of inserted records: #{inserted.inspect}")
-            #STDOUT.puts("Result of removed records: #{removed.inspect}")
+            STDOUT.puts("Result of inserted records: #{inserted.inspect}")
+            STDOUT.puts("Result of removed records: #{removed.inspect}")
           end
           [to_add, to_remove]
         end

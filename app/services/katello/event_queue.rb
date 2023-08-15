@@ -20,8 +20,12 @@ module Katello
       ::Katello::Event.all.size
     end
 
-    def self.runnable_events
-      Katello::Event.where(process_after: nil).or(Katello::Event.where(process_after: Date.new..Time.zone.now))
+    def self.runnable_events_count_query
+      runnable_events('TIME_PLACEHOLDER').select('count(*)').to_sql
+    end
+
+    def self.runnable_events(time = Time.zone.now)
+      Katello::Event.where(process_after: nil).or(Katello::Event.where('process_after <= ?', time))
     end
 
     def self.clear_events(event_type, object_id, on_or_earlier_than)

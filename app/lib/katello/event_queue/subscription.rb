@@ -1,7 +1,7 @@
 module Katello
   class EventQueue
     class Subscription
-      TIMEOUT = 120 # Base this on httpd timeout?
+      TIMEOUT = 60 # Base this on httpd timeout?
 
       def wait
         start = Time.zone.now

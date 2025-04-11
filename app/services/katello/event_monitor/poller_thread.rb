@@ -15,13 +15,7 @@ module Katello
 
           begin
             @marked_in_progress = @queue.mark_in_progress(@event) # Mark in progress first so that unsupported events are also cleared
-
-            ::User.as_anonymous_admin do
-              @event_instance.run
-            end
-
-            #fail "this is bad"
-
+            @event_instance.run
             @run_complete = true
           ensure
             if @event_instance.try(:retry)

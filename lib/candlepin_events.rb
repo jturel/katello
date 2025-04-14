@@ -1,0 +1,3 @@
+module CandlepinEvents
+
+end

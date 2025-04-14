@@ -1,47 +1,53 @@
 module Katello
-  # TODO: Move this class to app/lib/katello/event_daemon/services with other service definitions
   class CandlepinEventListener
-    Event = Struct.new(:subject, :content)
+#    include Singleton
 
-    cattr_accessor :client_factory
+    # @pid need to be global....
+    # is @pid necessarily a child process?
 
-    @failed_count = 0
-    @processed_count = 0
-
-    def self.logger
-      ::Foreman::Logging.logger('katello/candlepin_events')
-    end
-
-    def self.running?
-      @client&.running? || false
-    end
-
-    def self.close
-      if @client&.close
-        logger.info("Closed candlepin event listener")
+    def initialize(settings = SETTINGS[:katello][:candlepin_events])
+      @settings = settings.merge(
+        ssl_key_file: Setting[:ssl_priv_key],
+        ssl_cert_file: Setting[:ssl_certificate],
+        ssl_ca_file: Setting[:ssl_ca_file]
+      )
+      @settings.each do |key, value|
+        ENV["candlepin_events_#{key}"] = value.to_s
       end
-      reset
+      @script = ::Katello::Engine.root.join('bin', 'candlepin_events')
     end
 
-    def self.reset
-      @processed_count = 0
-      @failed_count = 0
-      @client = nil
+    def start
+      raise "nope" if running?
+
+      @pid = Process.spawn(@script.to_s)
+
+      at_exit do
+        stop
+      end
+
+      @pid
     end
 
-    def self.run
-      @client = client_factory.call
-      @client.subscribe do |message|
-        handle_message(message)
+    def stop
+      if running?
+        Rails.logger.info "closing"
+        begin
+          Process.kill('TERM', @pid)
+        rescue Errno::ESRCH
+          Rails.logger.info "process already done"
+        end
       end
     end
 
-    def self.status
-      {
-        processed_count: @processed_count,
-        failed_count: @failed_count,
-        running: running?,
-      }
+    def running?
+      # sometimes this returns true after defunct?
+      begin
+        Process.waitpid(@pid, Process::WNOHANG)
+        true
+      rescue Errno::ECHILD, TypeError
+        false
+      end
     end
 
     def self.handle_message(message)
@@ -50,9 +56,7 @@ module Katello
         cp_event = Event.new(subject, message.body)
         ::Katello::Candlepin::EventHandler.new(logger).handle(cp_event)
       end
-      @processed_count += 1
     rescue => e
-      @failed_count += 1
       logger.error("Error handling Candlepin event")
       logger.error(e.message)
       logger.error(e.backtrace.join("\n"))

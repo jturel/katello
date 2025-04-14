@@ -1,0 +1,41 @@
+#!/bin/ruby
+
+$LOAD_PATH.push File.expand_path("../lib", __dir__)
+
+require 'candlepin_events/stomp_connection'
+
+settings = {
+  broker_host: ENV['candlepin_events_broker_host'],
+  broker_port: ENV['candlepin_events_broker_port'],
+  queue_name: ENV['candlepin_events_queue_name'],
+  subscription_name: ENV['candlepin_events_subscription_name'],
+  client_id: ENV['candlepin_events_client_id'],
+  ssl_key_file: ENV['candlepin_events_ssl_key_file'],
+  ssl_cert_file: ENV['candlepin_events_ssl_cert_file'],
+  ssl_ca_file: ENV['candlepin_events_ssl_ca_file']
+}
+
+client = CandlepinEvents::StompConnection.new(settings: settings)
+
+
+# Keep in mind:
+# StompConnection uses a non-durable subscription
+# Only one client with the subscription_name can be connected. This ensures
+# we don't have multiple subscribers handling events.
+
+client.subscribe do |message|
+  puts message.inspect
+end
+
+=begin
+i = 20
+until i == 0 do
+  puts "tick"
+  sleep 1
+  i -= 1
+end
+=end
+sleep 15
+
+client.close
+puts "done"

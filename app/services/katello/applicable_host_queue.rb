@@ -9,13 +9,23 @@ module Katello
     end
 
     def self.push_hosts(ids)
-      HostQueueElement.import ids.map { |host_id| { host_id: host_id } }, validate: false
+      return if ids.empty?
+      ActiveSupport::Notifications.instrument("applicability_push_hosts") do |payload|
+        result = HostQueueElement.insert_all(ids.map { |host_id| { host_id: host_id } }, returning: :host_id, unique_by: :host_id)
+        payload[:host_ids] = result.rows.flatten
+      end
     end
 
-    def self.pop_hosts(amount = self.batch_size)
-      queue = HostQueueElement.group(:host_id).select("MIN(created_at) as created_at, host_id").limit(amount)
-      HostQueueElement.where(host_id: queue.map(&:host_id)).delete_all
-      queue
+    def self.pop_hosts
+      HostQueueElement.transaction do
+        elements = HostQueueElement.order(:id).select(:id, :host_id).limit(batch_size)
+
+        host_ids = elements.map(&:host_id)
+        yield(host_ids) if block_given?
+
+        elements.delete_all
+        host_ids
+      end
     end
   end
 end

@@ -89,6 +89,7 @@ module Katello
       if ActiveRecord::Base.connection.data_source_exists?(ForemanTasks::Task.table_name) && User.unscoped.find_by_login(User::ANONYMOUS_ADMIN).present?
         ::ForemanTasks.dynflow.config.on_init(false) do |_world|
           Katello::Engine.register_scheduled_task(Actions::Candlepin::Consumer::CleanBackendObjects, '0 0 1 * *')
+          Katello::Applicability::Scheduler.initialize_agent
         end
       end
     rescue ActiveRecord::NoDatabaseError # rubocop:disable Lint/SuppressedException
@@ -228,8 +229,6 @@ module Katello
       ::RemoteExecutionProxySelector.prepend Katello::Concerns::RemoteExecutionProxySelectorExtensions
 
       load 'katello/scheduled_jobs.rb'
-
-      Katello::EventQueue.register_event(Katello::Events::GenerateHostApplicability::EVENT_TYPE, Katello::Events::GenerateHostApplicability)
     end
 
     rake_tasks do

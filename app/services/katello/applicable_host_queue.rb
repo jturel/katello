@@ -27,5 +27,17 @@ module Katello
         host_ids
       end
     end
+
+    def self.pop_host_ids(ids)
+      HostQueueElement.transaction do
+        elements = HostQueueElement.order(:id).select(:id, :host_id).where(host_id: ids)
+
+        host_ids = elements.map(&:host_id)
+        yield(host_ids) if block_given?
+
+        elements.delete_all
+        host_ids
+      end
+    end
   end
 end

@@ -77,6 +77,7 @@ module Katello
     initializer "katello.register_actions", :before => :finisher_hook do |_app|
       ForemanTasks.dynflow.require!
       ForemanTasks.dynflow.config.queues.add(HOST_TASKS_QUEUE)
+      ForemanTasks.dynflow.config.managed_actors.add('applicability', Katello::Applicability::Scheduler::Actor)
 
       action_paths = %W(#{Katello::Engine.root}/app/lib/actions
                         #{Katello::Engine.root}/app/lib/headpin/actions
@@ -89,7 +90,6 @@ module Katello
       if ActiveRecord::Base.connection.data_source_exists?(ForemanTasks::Task.table_name) && User.unscoped.find_by_login(User::ANONYMOUS_ADMIN).present?
         ::ForemanTasks.dynflow.config.on_init(false) do |_world|
           Katello::Engine.register_scheduled_task(Actions::Candlepin::Consumer::CleanBackendObjects, '0 0 1 * *')
-          Katello::Applicability::Scheduler.initialize_agent
         end
       end
     rescue ActiveRecord::NoDatabaseError # rubocop:disable Lint/SuppressedException

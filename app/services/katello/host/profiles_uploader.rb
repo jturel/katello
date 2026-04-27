@@ -57,7 +57,7 @@ module Katello
           Rails.logger.warn "Host was not specified; can't trigger applicability generation"
           return
         end
-        ::Katello::Host::ContentFacet.trigger_applicability_generation(@host.id)
+        ::Katello::Host::ContentFacet.trigger_applicability_generation([@host.id])
       end
 
       private

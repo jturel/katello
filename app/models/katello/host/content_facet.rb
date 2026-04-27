@@ -264,8 +264,11 @@ module Katello
       end
 
       def self.trigger_applicability_generation(host_ids)
-        host_ids = [host_ids] unless host_ids.is_a?(Array)
-        ::Katello::ApplicableHostQueue.push_hosts(host_ids)
+        return if host_ids.empty?
+
+        ActiveSupport::Notifications.instrument("schedule_host_applicability") do |payload|
+          payload[:host_ids] = host_ids
+        end
       end
 
       # Katello applicability

@@ -1,67 +1,106 @@
 module Katello
   module Applicability
     class Scheduler
-      ActiveSupport::Notifications.subscribe("applicability_push_hosts") do |event|
+      ActiveSupport::Notifications.subscribe("schedule_host_applicability") do |event|
         if event.payload[:host_ids].any?
-          agent_push_hosts(event.payload[:host_ids])
+          notify_actor(event.payload[:host_ids])
         end
       end
 
-      def self.initialize_agent
-        # TODO: initialize with current host_ids on the queue
-        ForemanTasks.dynflow.world.register_agent('applicability', value: [], observers: [Agent::Observer.new])
+      def self.notify_actor(host_ids)
+        ForemanTasks.dynflow.world.message_actor('applicability', 'push_hosts', [host_ids])
       end
 
-      module Agent
-        class Observer
-          def update(_time, old_value, new_value)
-            return unless new_value.length > old_value.length # Hosts pushed
+      def initialize
+        @backlog = Backlog.new
+        @storage = ApplicableHostQueue
+        @processor = BatchProcessor.new
+      end
 
-            queue_depth = Applicability::Scheduler.queue.queue_depth
-            batch_size = Applicability::Scheduler.queue.batch_size
-            full_batch = new_value.length == batch_size
-            return unless full_batch || new_value.length == queue_depth # this might break
+      def push_hosts(host_ids)
+        @backlog.add(host_ids)
+      end
 
-            Katello::Applicability::Scheduler.queue.pop_host_ids(new_value) do |batch|
-              Rails.logger.info "[applicability] Draining hosts=#{new_value.length} queue_depth=#{queue_depth} batch=#{batch.length}"
-              ForemanTasks.async_task(Actions::Katello::Applicability::Hosts::BulkGenerate, host_ids: batch)
+      def done?
+        @backlog.empty?
+      end
+
+      def load_from_storage
+        host_ids = @storage.pop_hosts
+        push_hosts(host_ids)
+      end
+
+      def persist
+        @storage.push_hosts(@backlog.host_ids)
+      end
+
+      def process
+        processed = @processor.process(@backlog.host_ids)
+        @backlog.remove(processed)
+        @last_processed = Time.zone.now
+      end
+
+      def needs_processing?
+        return false if @backlog.empty?
+
+        @last_processed.nil? || @last_processed < 2.seconds.ago || @backlog.size >= @processor.batch_size
+      end
+
+      class Benchmark
+        def self.run(count: 1500, threads: 20)
+          Katello::HostQueueElement.delete_all
+          ForemanTasks::Task::DynflowTask.for_action(Actions::Katello::Applicability::Hosts::BulkGenerate).destroy_all
+          @result = ::Benchmark.bm do |x|
+            x.report do
+              host_id = Concurrent::AtomicFixnum.new
+              count.times do
+                spawned_threads = [].tap do |arr|
+                  threads.times { arr << Thread.new { Scheduler.notify_actor([host_id.increment]) } }
+                end
+                spawned_threads.map(&:join)
+              end
             end
-
-            Applicability::Scheduler.schedule_pop(new_value)
           end
         end
 
-        class PushHosts
-          def initialize(host_ids)
-            @host_ids = host_ids
-          end
-
-          def run(value)
-            value + @host_ids
-          end
-        end
-
-        class PopHosts
-          def initialize(host_ids)
-            @host_ids = host_ids
-          end
-
-          def run(value)
-            value - @host_ids
-          end
+        def self.last_result
+          @result
         end
       end
 
-      def self.agent_push_hosts(host_ids)
-        ForemanTasks.dynflow.world.agent_event('applicability', Agent::PushHosts, [host_ids])
-      end
+      class Actor < Concurrent::Actor::RestartingContext
+        def initialize(scheduler: Scheduler.new)
+          super()
+          @scheduler = scheduler
+          # TODO: What's the proper interval type?
+          @timer = Concurrent::TimerTask.new(execution_interval: 0.5, interval_type: :fixed_rate) do
+            reference.tell(:tick)
+          end
+          reference.tell(:initialize)
+        end
 
-      def self.schedule_pop(host_ids)
-        ForemanTasks.dynflow.world.agent_event('applicability', Agent::PopHosts, [host_ids])
-      end
+        def on_message(message)
+          action, arg = message
+          case action
+          when :initialize
+            @scheduler.load_from_storage
+          when :push_hosts
+            @scheduler.push_hosts(arg)
+          when :tick
+            @scheduler.process if @scheduler.needs_processing?
+          when :terminate
+            @timer.shutdown
+            @scheduler.persist
+            arg.fulfill(true)
+            return
+          end
 
-      def self.queue
-        Katello::ApplicableHostQueue
+          if @scheduler.done?
+            @timer.shutdown
+          else
+            @timer.execute
+          end
+        end
       end
     end
   end

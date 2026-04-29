@@ -12,7 +12,7 @@ module Katello
       end
 
       def remove(host_ids)
-        @host_ids -= host_ids
+        @host_ids.subtract(host_ids)
       end
 
       def empty?

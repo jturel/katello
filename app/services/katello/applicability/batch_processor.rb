@@ -5,17 +5,15 @@ module Katello
         Setting["applicability_batch_size"]
       end
 
+      def batch(host_ids)
+        host_ids.take(batch_size)
+      end
+
       def process(host_ids)
-        batch = []
-        host_ids.each do |host_id|
-          break if batch.length == batch_size
-          batch << host_id
-        end
-
-        Rails.logger.info "Processing batch #{batch.length}"
-        # TODO: Spawn BulkGenerate
-
-        batch
+        current_batch = batch(host_ids)
+        Rails.logger.info "Processing batch #{current_batch.length}"
+        #ForemanTasks.async_task(Actions::Katello::Applicability::Hosts::BulkGenerate, host_ids: current_batch)
+        current_batch
       end
     end
   end

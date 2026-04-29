@@ -69,7 +69,7 @@ module Katello
       end
 
       class Actor < Concurrent::Actor::RestartingContext
-        def initialize(scheduler: Scheduler.new)
+        def initialize(scheduler: Katello::Applicability::Scheduler.new)
           super()
           @scheduler = scheduler
           # TODO: What's the proper interval type?

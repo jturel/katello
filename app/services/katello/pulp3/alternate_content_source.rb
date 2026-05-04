@@ -15,6 +15,17 @@ module Katello
         @api ||= ::Katello::Pulp3::Repository.api(smart_proxy, @acs.content_type)
       end
 
+      def join_space_or_nil(value)
+        vals = Array(value).map(&:to_s).map(&:strip).reject(&:blank?)
+        vals.empty? ? nil : vals.join(' ')
+      end
+
+      def join_space_required!(field, value)
+        s = join_space_or_nil(value)
+        fail ::Katello::Errors::Pulp3Error, "Debian ACS requires '#{field}' to be a non-empty string" if s.nil?
+        s
+      end
+
       def generate_backend_object_name
         "#{acs.label}-#{smart_proxy.url}-#{rand(9999)}"
       end
@@ -56,6 +67,11 @@ module Katello
           proxy_password: smart_proxy.http_proxy&.password,
           total_timeout: Setting[:sync_connect_timeout],
         }
+        if acs.deb?
+          remote_options[:distributions] = join_space_required!('deb_releases', acs.deb_releases)
+          remote_options[:components] = join_space_or_nil(acs.deb_components)
+          remote_options[:architectures] = join_space_or_nil(acs.deb_architectures)
+        end
         if acs.content_type == ::Katello::Repository::FILE_TYPE && acs.subpaths.empty? && !remote_options[:url].end_with?('/PULP_MANIFEST')
           remote_options[:url] = acs.base_url + '/PULP_MANIFEST'
         end
@@ -90,7 +106,9 @@ module Katello
       end
 
       def update_remote(href = smart_proxy_acs.remote_href)
-        api.get_remotes_api(href: href).partial_update(href, remote_options)
+        response = api.get_remotes_api(href: href).partial_update(href, remote_options)
+        # Pulp 3.90+ returns polymorphic responses (PULP-734): task when changes occur, nil when no-op
+        response if response.respond_to?(:task) && response.task.present?
       end
 
       def delete_remote(options = {})
@@ -121,7 +139,9 @@ module Katello
         if acs.content_type == ::Katello::Repository::FILE_TYPE && acs.subpaths.present?
           paths = insert_pulp_manifest!(paths)
         end
-        api.alternate_content_source_api.update(href, name: generate_backend_object_name, paths: paths.sort, remote: smart_proxy_acs.remote_href)
+        response = api.alternate_content_source_api.update(href, name: generate_backend_object_name, paths: paths.sort, remote: smart_proxy_acs.remote_href)
+        # Pulp 3.90+ returns polymorphic responses (PULP-734): task when changes occur, nil when no-op
+        response if response.respond_to?(:task) && response.task.present?
       end
 
       def delete_alternate_content_source

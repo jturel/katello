@@ -77,6 +77,7 @@ module Katello
     initializer "katello.register_actions", :before => :finisher_hook do |_app|
       ForemanTasks.dynflow.require!
       ForemanTasks.dynflow.config.queues.add(HOST_TASKS_QUEUE)
+      ForemanTasks.dynflow.config.managed_actors.add('applicability', class: Katello::Applicability::Scheduler::Actor, singleton: true)
 
       action_paths = %W(#{Katello::Engine.root}/app/lib/actions
                         #{Katello::Engine.root}/app/lib/headpin/actions
@@ -228,8 +229,6 @@ module Katello
       ::RemoteExecutionProxySelector.prepend Katello::Concerns::RemoteExecutionProxySelectorExtensions
 
       load 'katello/scheduled_jobs.rb'
-
-      Katello::EventQueue.register_event(Katello::Events::GenerateHostApplicability::EVENT_TYPE, Katello::Events::GenerateHostApplicability)
     end
 
     rake_tasks do

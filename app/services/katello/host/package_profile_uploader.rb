@@ -18,7 +18,7 @@ module Katello
       end
 
       def trigger_applicability_generation
-        ::Katello::Host::ContentFacet.trigger_applicability_generation(@host&.id)
+        ::Katello::Host::ContentFacet.trigger_applicability_generation([@host.id]) if @host
       end
 
       def self.import_package_profile_for_host(host_id, profile)

@@ -72,7 +72,7 @@ module Katello
     api :PUT, "/hosts/:host_id/errata/applicability", N_("Force regenerate applicability.")
     param :host_id, :number, :desc => N_("Host ID"), :required => true
     def applicability
-      Katello::Host::ContentFacet.trigger_applicability_generation(@host.id)
+      Katello::Host::ContentFacet.trigger_applicability_generation([@host.id])
       respond_for_async :resource => {}
     end
 

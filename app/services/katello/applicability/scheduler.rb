@@ -68,38 +68,36 @@ module Katello
         end
       end
 
-      class Actor < Concurrent::Actor::RestartingContext
-        def initialize(scheduler: Katello::Applicability::Scheduler.new)
-          super()
-          @scheduler = scheduler
-          # TODO: What's the proper interval type?
-          @timer = Concurrent::TimerTask.new(execution_interval: 0.5, interval_type: :fixed_rate) do
-            reference.tell(:tick)
-          end
-          reference.tell(:initialize)
+      class Actor
+        def initialize
+          @scheduler = Scheduler.new
         end
 
-        def on_message(message)
-          action, arg = message
-          case action
-          when :initialize
-            @scheduler.load_from_storage
-          when :push_hosts
-            @scheduler.push_hosts(arg)
-          when :tick
-            @scheduler.process if @scheduler.needs_processing?
-          when :terminate
-            @timer.shutdown
-            @scheduler.persist
-            arg.fulfill(true)
-            return
-          end
+        def start
+          @scheduler.load_from_storage
+        end
 
-          if @scheduler.done?
-            @timer.shutdown
-          else
-            @timer.execute
-          end
+        def stop
+          @scheduler.persist
+        end
+
+        def tick
+          @scheduler.process if @scheduler.needs_processing?
+        end
+
+        def start_timer?
+          !@scheduler.done?
+        end
+
+        def push_hosts(host_ids)
+          @scheduler.push_hosts(host_ids)
+        end
+
+        def timer_options
+          {
+            execution_interval: 0.5,
+            interval_type: :fixed_rate,
+          }
         end
       end
     end
